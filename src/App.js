@@ -1,25 +1,1913 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Row, Col, Typography, Radio, Spin, Progress, Input, message, Space, Tag, Form, Select, Slider, ColorPicker, Modal, Divider, Steps, Collapse } from 'antd';
+import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlined, GlobalOutlined, ScanOutlined, EyeOutlined, SettingOutlined, ApiOutlined, CloudUploadOutlined, CodeOutlined, DownOutlined, CloudDownloadOutlined, FileMarkdownOutlined, FileTextOutlined, DatabaseOutlined, FileZipOutlined } from '@ant-design/icons';
+import './styles/mobile.css';
+import SEOHead from './components/SEOHead';
 
-function App() {
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+
+const App = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [scanningMessage, setScanningMessage] = useState('');
+  const [editingStep, setEditingStep] = useState(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [selectedCMS, setSelectedCMS] = useState(null);
+  const [expandedSteps, setExpandedSteps] = useState([]);
+  const [userEmail, setUserEmail] = useState('');
+  const [userAccount, setUserAccount] = useState(null);
+  const [showEmailGate, setShowEmailGate] = useState(false);
+  const [showSignupGate, setShowSignupGate] = useState(false);
+  const [emailForm] = Form.useForm();
+  const [signupForm] = Form.useForm();
+  
+  // Step results storage
+  const [stepResults, setStepResults] = useState({
+    websiteAnalysis: {
+      businessType: 'Child Wellness & Parenting',
+      businessName: '',
+      targetAudience: 'Parents of children aged 2-12',
+      contentFocus: 'Emotional wellness, child development, mindful parenting',
+      brandVoice: 'Warm, expert, supportive',
+      brandColors: {
+        primary: '#6B8CAE',
+        secondary: '#F4E5D3',
+        accent: '#8FBC8F'
+      },
+      description: ''
+    },
+    trendingTopics: [],
+    selectedContent: null,
+    finalContent: ''
+  });
+
+  // Mock trending topics data
+  const mockTopics = [
+    {
+      id: 1,
+      trend: "AI Safety for Children",
+      title: "How to Teach Your Child About AI Safety: A Parent's Guide to the Digital Future",
+      subheader: "As artificial intelligence becomes part of daily life, here's how to prepare your children for safe AI interactions",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop",
+      popularity: "Trending +340%",
+      category: "Digital Parenting"
+    },
+    {
+      id: 2,
+      trend: "Emotional Regulation Techniques",
+      title: "5 Science-Backed Emotional Regulation Techniques That Actually Work for Sensitive Children",
+      subheader: "Research-proven methods to help highly sensitive children manage overwhelming emotions and build resilience",
+      image: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=400&h=250&fit=crop",
+      popularity: "Trending +280%",
+      category: "Child Development"
+    },
+    {
+      id: 3,
+      trend: "Screen-Free Learning Activities",
+      title: "50 Screen-Free Activities That Boost Your Toddler's Brain Development",
+      subheader: "Creative, engaging alternatives to screen time that support cognitive growth and family bonding",
+      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400&h=250&fit=crop",
+      popularity: "Trending +195%",
+      category: "Early Learning"
+    },
+    {
+      id: 4,
+      trend: "Holiday Stress Management",
+      title: "Managing Holiday Stress When You Have Anxious Children: Expert Strategies That Work",
+      subheader: "Practical tips from child psychologists to help anxious children navigate holiday overwhelm with confidence",
+      image: "https://images.unsplash.com/photo-1512389098783-66b81f86e199?w=400&h=250&fit=crop",
+      popularity: "Trending +156%",
+      category: "Family Wellness"
+    },
+    {
+      id: 5,
+      trend: "Mindful Bedtime Routines",
+      title: "The 10-Minute Mindful Bedtime Routine That Transforms Sleep for the Whole Family",
+      subheader: "Simple mindfulness practices that help children (and parents) wind down and achieve deeper, more restful sleep",
+      image: "https://images.unsplash.com/photo-1520637836862-4d197d17c90a?w=400&h=250&fit=crop",
+      popularity: "Trending +143%",
+      category: "Sleep & Wellness"
+    }
+  ];
+
+  const steps = [
+    { title: 'Enter Website', icon: <GlobalOutlined />, description: 'Enter your website URL for analysis' },
+    { title: 'Analyzing Website', icon: <ScanOutlined />, description: 'Scanning your website to understand your business' },
+    { title: 'Discovering Trends', icon: <SearchOutlined />, description: 'Finding trending topics relevant to your industry' },
+    { title: 'Generating Ideas', icon: <BulbOutlined />, description: 'Creating compelling titles and subheaders with AI' },
+    { title: 'Creating Visuals', icon: <EditOutlined />, description: 'Generating custom images with DALL-E' },
+    { title: 'Select & Generate', icon: <CheckOutlined />, description: 'Choose your topic and create full content' },
+    { title: 'Edit Content', icon: <EditOutlined />, description: 'Review and customize your blog post' },
+    { title: 'Download Content', icon: <CloudDownloadOutlined />, description: 'Export your blog post in multiple formats' }
+  ];
+
+  const cmsOptions = [
+    { 
+      id: 'wordpress', 
+      name: 'WordPress', 
+      logo: '🔵',
+      description: 'Most popular CMS platform',
+      integration: 'Native plugin with automatic posting',
+      complexity: 'Simple'
+    },
+    { 
+      id: 'shopify', 
+      name: 'Shopify', 
+      logo: '🛍️',
+      description: 'E-commerce platform with blog',
+      integration: 'Direct API integration',
+      complexity: 'Simple'
+    },
+    { 
+      id: 'ghost', 
+      name: 'Ghost', 
+      logo: '👻',
+      description: 'Modern publishing platform',
+      integration: 'Admin API webhook',
+      complexity: 'Simple'
+    },
+    { 
+      id: 'webflow', 
+      name: 'Webflow', 
+      logo: '🌊',
+      description: 'Design-focused CMS',
+      integration: 'Custom field mapping',
+      complexity: 'Medium'
+    },
+    { 
+      id: 'squarespace', 
+      name: 'Squarespace', 
+      logo: '⬜',
+      description: 'All-in-one website builder',
+      integration: 'API integration',
+      complexity: 'Medium'
+    },
+    { 
+      id: 'custom', 
+      name: 'Custom CMS', 
+      logo: '⚙️',
+      description: 'Your custom platform',
+      integration: 'Flexible webhook system',
+      complexity: 'Advanced'
+    }
+  ];
+
+  useEffect(() => {
+    if (currentStep >= 2 && currentStep < 5) {
+      const timer = setTimeout(() => {
+        setCurrentStep(prev => prev + 1);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
+
+  // Check for gating at key points
+  useEffect(() => {
+    // Email gate at step 4+ (Content Ideas)
+    if (currentStep >= 4 && currentStep <= 6 && !userEmail && !showEmailGate) {
+      setShowEmailGate(true);
+    }
+    
+    // Signup gate at step 7+ (Edit Content)
+    if (currentStep >= 7 && !userAccount && !showSignupGate) {
+      setShowSignupGate(true);
+    }
+  }, [currentStep, userEmail, userAccount]);
+
+  // Simulate website scanning with progressive messages
+  useEffect(() => {
+    if (currentStep === 1) {
+      const messages = [
+        'Reading website content...',
+        'Identifying products and services...',
+        'Analyzing brand colors and design...',
+        'Understanding target audience...',
+        'Preparing content recommendations...'
+      ];
+      
+      let messageIndex = 0;
+      setScanningMessage(messages[0]);
+      
+      const messageInterval = setInterval(() => {
+        messageIndex++;
+        if (messageIndex < messages.length) {
+          setScanningMessage(messages[messageIndex]);
+        } else {
+          clearInterval(messageInterval);
+          // Complete website analysis
+          completeWebsiteAnalysis();
+        }
+      }, 800);
+      
+      return () => clearInterval(messageInterval);
+    }
+  }, [currentStep]);
+
+  const completeWebsiteAnalysis = () => {
+    // Extract business name from URL
+    const businessName = websiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '').split('.')[0];
+    
+    // Create mock analysis results
+    const analysisResults = {
+      businessType: 'Child Wellness & Parenting',
+      businessName: businessName.charAt(0).toUpperCase() + businessName.slice(1),
+      targetAudience: 'Parents of children aged 2-12',
+      contentFocus: 'Emotional wellness, child development, mindful parenting',
+      brandVoice: 'Warm, expert, supportive',
+      brandColors: {
+        primary: '#6B8CAE',
+        secondary: '#F4E5D3', 
+        accent: '#8FBC8F'
+      },
+      description: `${businessName.charAt(0).toUpperCase() + businessName.slice(1)} appears to be a family-focused website offering products and content related to child emotional wellness and parenting support. The site emphasizes evidence-based approaches to child development with a warm, supportive tone.`
+    };
+
+    setStepResults(prev => ({
+      ...prev,
+      websiteAnalysis: analysisResults
+    }));
+
+    setTimeout(() => setCurrentStep(2), 1000);
+  };
+
+  const handleTopicSelect = (topicId) => {
+    setSelectedTopic(topicId);
+  };
+
+  const editStepResults = (stepNumber) => {
+    setEditingStep(stepNumber);
+  };
+
+  const saveStepResults = (stepNumber, newResults) => {
+    setStepResults(prev => ({
+      ...prev,
+      ...newResults
+    }));
+    setEditingStep(null);
+    
+    // Regenerate downstream steps if needed
+    if (stepNumber <= 1) {
+      message.info('Regenerating content based on updated analysis...');
+      // Reset selection and content
+      setSelectedTopic(null);
+      setGeneratedContent('');
+      if (currentStep > 6) {
+        setCurrentStep(6); // Go back to topic selection
+      }
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingStep(null);
+  };
+
+  const analyzeWebsite = () => {
+    if (!websiteUrl.trim()) {
+      message.warning('Please enter a website URL');
+      return;
+    }
+    
+    // Basic URL validation
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+    if (!urlPattern.test(websiteUrl)) {
+      message.error('Please enter a valid website URL');
+      return;
+    }
+    
+    setCurrentStep(1);
+  };
+
+  const generateContent = () => {
+    if (!selectedTopic) {
+      message.warning('Please select a topic first');
+      return;
+    }
+    
+    // Check if user needs to sign up for step 7+
+    if (!userAccount) {
+      setShowSignupGate(true);
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    // Simulate content generation
+    setTimeout(() => {
+      const topic = mockTopics.find(t => t.id === selectedTopic);
+      const businessName = stepResults.websiteAnalysis.businessName || 'your business';
+      const sampleContent = `# ${topic.title}
+
+${topic.subheader}
+
+## Introduction
+
+In today's rapidly evolving world, parents face unique challenges that previous generations never encountered. This comprehensive guide provides evidence-based strategies and practical solutions to help you navigate modern parenting with confidence.
+
+## Key Points to Remember
+
+- **Evidence-Based Approach**: All recommendations are backed by current research in child development and psychology
+- **Age-Appropriate Strategies**: Techniques are tailored for different developmental stages
+- **Family-Centered Solutions**: Methods that work for the whole family, not just individual children
+
+## Practical Strategies
+
+### 1. Creating a Supportive Environment
+
+The foundation of success lies in creating an environment where children feel safe to express themselves and learn. Here's how to establish that foundation:
+
+- Set clear, consistent boundaries
+- Provide predictable routines
+- Celebrate small wins and progress
+- Practice patience and understanding
+
+### 2. Building Emotional Intelligence
+
+Helping children understand and manage their emotions is crucial for long-term success:
+
+- Validate their feelings before addressing behavior
+- Teach emotion vocabulary
+- Model healthy emotional expression
+- Practice problem-solving together
+
+### 3. Encouraging Independence
+
+While providing support, it's important to foster independence:
+
+- Offer choices within appropriate limits
+- Encourage problem-solving attempts
+- Gradually increase responsibilities
+- Celebrate independent successes
+
+## Expert Insights
+
+Leading child psychologists emphasize the importance of consistency and patience in implementing these strategies. Dr. Sarah Johnson notes: "The key is not perfection, but persistent, gentle guidance that helps children develop their own coping mechanisms."
+
+## Conclusion
+
+Remember that every child is unique, and what works for one may need adjustment for another. The most important thing is to stay connected with your child and adapt these strategies to fit your family's needs.
+
+*Ready to learn more about supporting your child's emotional development? ${businessName} offers resources and tools designed to help children build confidence and emotional regulation skills.*`;
+
+      setGeneratedContent(sampleContent);
+      setCurrentStep(7);
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  const handleContentChange = (e) => {
+    setGeneratedContent(e.target.value);
+  };
+
+  const publishContent = () => {
+    message.success('Content published successfully! (Demo mode)');
+  };
+
+  // Export functions for blog post download
+  const getCurrentPost = () => {
+    const selectedTopicData = mockTopics.find(t => t.id === selectedTopic);
+    
+    return {
+      title: selectedTopicData?.title || "Demo Blog Post Title",
+      slug: selectedTopicData?.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'demo-blog-post',
+      subheader: selectedTopicData?.subheader || "AI-generated subheader for this demo post",
+      excerpt: selectedTopicData?.subheader || "Demo excerpt",
+      content: generatedContent || "Demo content would go here...",
+      tags: ['AI Generated', 'AutoBlog', selectedTopicData?.category || 'Demo'],
+      category: selectedTopicData?.category || 'Business',
+      website: websiteUrl,
+      brandColors: stepResults.websiteAnalysis.brandColors,
+      readingTime: Math.ceil((generatedContent || '').length / 1000) || 5,
+      wordCount: (generatedContent || '').split(' ').length || 100
+    };
+  };
+
+  const downloadFile = (content, filename, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    message.success(`Downloaded ${filename} successfully!`);
+  };
+
+  const exportAsMarkdown = () => {
+    const post = getCurrentPost();
+    const markdown = `# ${post.title}
+
+${post.subheader}
+
+${post.content}
+
+---
+*Generated by AutoBlog - AI-Powered Content Creation*
+
+**Tags**: ${post.tags.join(', ')}
+**Category**: ${post.category}
+**Reading Time**: ${post.readingTime} minutes
+**Word Count**: ${post.wordCount} words
+**Source Website**: ${post.website}
+`;
+
+    downloadFile(markdown, `${post.slug}.md`, 'text/markdown');
+  };
+
+  const exportAsHTML = () => {
+    const post = getCurrentPost();
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${post.title}</title>
+  <meta name="description" content="${post.excerpt}">
+  <meta name="keywords" content="${post.tags.join(', ')}">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .header { text-align: center; margin-bottom: 40px; }
+    .subheader { font-size: 1.2em; color: ${post.brandColors.primary}; margin-bottom: 30px; }
+    .content { margin-bottom: 40px; }
+    .footer { border-top: 1px solid #eee; padding-top: 20px; font-size: 0.9em; color: #666; }
+    .tags { margin-top: 10px; }
+    .tag { background: ${post.brandColors.secondary}; color: ${post.brandColors.primary}; padding: 4px 8px; border-radius: 4px; margin-right: 8px; font-size: 0.8em; }
+    h1 { color: ${post.brandColors.primary}; }
+    h2 { color: ${post.brandColors.primary}; margin-top: 30px; }
+    h3 { color: ${post.brandColors.accent || post.brandColors.primary}; }
+  </style>
+</head>
+<body>
+  <article>
+    <header class="header">
+      <h1>${post.title}</h1>
+      <p class="subheader">${post.subheader}</p>
+    </header>
+    
+    <div class="content">
+      ${post.content.replace(/\n/g, '<br>\n')}
+    </div>
+    
+    <footer class="footer">
+      <p><em>Generated by AutoBlog - AI-Powered Content Creation</em></p>
+      <p><strong>Source Website:</strong> ${post.website}</p>
+      <p><strong>Reading Time:</strong> ${post.readingTime} minutes | <strong>Word Count:</strong> ${post.wordCount} words</p>
+      <div class="tags">
+        ${post.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+      </div>
+    </footer>
+  </article>
+</body>
+</html>`;
+
+    downloadFile(html, `${post.slug}.html`, 'text/html');
+  };
+
+  const exportAsJSON = () => {
+    const post = getCurrentPost();
+    const jsonData = {
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+      subheader: post.subheader,
+      tags: post.tags,
+      category: post.category,
+      publishedAt: new Date().toISOString(),
+      source: 'AutoBlog AI',
+      sourceWebsite: post.website,
+      brandColors: post.brandColors,
+      metadata: {
+        readingTime: post.readingTime,
+        wordCount: post.wordCount,
+        generatedAt: new Date().toISOString(),
+        autoGenerated: true
+      }
+    };
+
+    downloadFile(
+      JSON.stringify(jsonData, null, 2), 
+      `${post.slug}.json`, 
+      'application/json'
+    );
+  };
+
+  const exportCompletePackage = () => {
+    message.info('Complete package export coming soon! For now, download individual formats.');
+    // TODO: Implement ZIP package export with JSZip library
+  };
+
+  const resetDemo = () => {
+    setCurrentStep(0);
+    setSelectedTopic(null);
+    setGeneratedContent('');
+    setIsLoading(false);
+    setWebsiteUrl('');
+    setScanningMessage('');
+    setEditingStep(null);
+    setPreviewMode(false);
+    setSelectedCMS(null);
+    setExpandedSteps([]);
+    setUserEmail('');
+    setUserAccount(null);
+    setShowEmailGate(false);
+    setShowSignupGate(false);
+    setStepResults({
+      websiteAnalysis: {
+        businessType: 'Child Wellness & Parenting',
+        businessName: '',
+        targetAudience: 'Parents of children aged 2-12',
+        contentFocus: 'Emotional wellness, child development, mindful parenting',
+        brandVoice: 'Warm, expert, supportive',
+        brandColors: {
+          primary: '#6B8CAE',
+          secondary: '#F4E5D3',
+          accent: '#8FBC8F'
+        },
+        description: ''
+      },
+      trendingTopics: [],
+      selectedContent: null,
+      finalContent: ''
+    });
+  };
+
+  const handleEmailSubmit = (values) => {
+    setUserEmail(values.email);
+    setShowEmailGate(false);
+    message.success('Email captured! Unlocking your content strategy...');
+    
+    // Continue to the gated step
+    if (currentStep < 4) setCurrentStep(4);
+  };
+
+  const handleSignupSubmit = (values) => {
+    setUserAccount({
+      email: values.email,
+      name: values.name,
+      company: values.company
+    });
+    setShowSignupGate(false);
+    message.success('Account created! You can now edit and publish your content.');
+    
+    // Continue to the gated step  
+    if (currentStep < 7) setCurrentStep(7);
+  };
+
+  const skipForDemo = () => {
+    if (showEmailGate) {
+      setUserEmail('demo@example.com');
+      setShowEmailGate(false);
+      message.info('Demo mode: Email requirement skipped');
+    }
+    
+    if (showSignupGate) {
+      setUserAccount({ email: 'demo@example.com', name: 'Demo User' });
+      setShowSignupGate(false);
+      message.info('Demo mode: Signup requirement skipped');
+    }
+  };
+
+  const progressPercent = ((currentStep + 1) / 8) * 100;
+
+  const renderStyledContent = (content) => {
+    const brandColors = stepResults.websiteAnalysis.brandColors;
+    
+    const styledContent = content.split('\n').map((line, index) => {
+      if (line.startsWith('# ')) {
+        return (
+          <Title 
+            key={index} 
+            level={1} 
+            style={{ color: brandColors.primary, marginTop: '20px' }}
+          >
+            {line.substring(2)}
+          </Title>
+        );
+      } else if (line.startsWith('## ')) {
+        return (
+          <Title 
+            key={index} 
+            level={2} 
+            style={{ color: brandColors.primary, marginTop: '16px' }}
+          >
+            {line.substring(3)}
+          </Title>
+        );
+      } else if (line.startsWith('### ')) {
+        return (
+          <Title 
+            key={index} 
+            level={3} 
+            style={{ color: brandColors.accent, marginTop: '12px' }}
+          >
+            {line.substring(4)}
+          </Title>
+        );
+      } else if (line.includes('*') && line.startsWith('*') && line.endsWith('*')) {
+        return (
+          <Paragraph 
+            key={index} 
+            style={{ 
+              fontStyle: 'italic', 
+              color: brandColors.accent,
+              backgroundColor: brandColors.secondary + '40',
+              padding: '12px',
+              borderRadius: '8px',
+              margin: '16px 0'
+            }}
+          >
+            {line.substring(1, line.length - 1)}
+          </Paragraph>
+        );
+      } else if (line.trim()) {
+        return <Paragraph key={index} style={{ margin: '8px 0' }}>{line}</Paragraph>;
+      } else {
+        return <br key={index} />;
+      }
+    });
+
+    return (
+      <div 
+        style={{ 
+          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: `2px solid ${brandColors.secondary}`,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        }}
+      >
+        <style>
+          {`
+            .styled-preview a {
+              color: ${brandColors.primary};
+            }
+            .styled-preview a:hover {
+              color: ${brandColors.accent};
+            }
+          `}
+        </style>
+        <div className="styled-preview">
+          {styledContent}
+        </div>
+      </div>
+    );
+  };
+
+  const toggleStepExpansion = (stepIndex) => {
+    setExpandedSteps(prev => 
+      prev.includes(stepIndex) 
+        ? prev.filter(i => i !== stepIndex)
+        : [...prev, stepIndex]
+    );
+  };
+
+  const renderStepSummary = (stepIndex) => {
+    if (stepIndex >= currentStep) return null; // Only show summaries for completed steps
+
+    const stepSummaries = {
+      0: (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Website:</Text> {websiteUrl || 'Not provided'}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Domain Type:</Text> {websiteUrl?.includes('.com') ? 'Business Website' : websiteUrl?.includes('.org') ? 'Organization' : 'Website'}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Ready for:</Text> AI business analysis
+            </Col>
+          </Row>
+        </div>
+      ),
+      
+      1: (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Website:</Text> {websiteUrl}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Business Detected:</Text> {stepResults.websiteAnalysis.businessName || 'Analyzing...'}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Industry Identified:</Text> {stepResults.websiteAnalysis.businessType}
+            </Col>
+          </Row>
+        </div>
+      ),
+
+      2: stepResults.websiteAnalysis.businessName ? (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Website:</Text> {websiteUrl}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Company Details:</Text> {stepResults.websiteAnalysis.businessName} ({stepResults.websiteAnalysis.businessType})
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Target Audience:</Text> {stepResults.websiteAnalysis.targetAudience}
+            </Col>
+            <Col xs={24}>
+              <Text strong>Brand Colors:</Text>{' '}
+              <Space size="small">
+                {Object.entries(stepResults.websiteAnalysis.brandColors).map(([key, color]) => (
+                  <div key={key} style={{
+                    display: 'inline-block',
+                    width: '16px',
+                    height: '16px',
+                    backgroundColor: color,
+                    borderRadius: '2px',
+                    border: '1px solid #ddd'
+                  }} title={`${key}: ${color}`} />
+                ))}
+                <Text style={{ marginLeft: '8px', fontSize: '12px' }}>
+                  Primary {stepResults.websiteAnalysis.brandColors.primary}, Secondary {stepResults.websiteAnalysis.brandColors.secondary}
+                </Text>
+              </Space>
+            </Col>
+            <Col xs={24}>
+              <Text strong>Brand Voice:</Text> {stepResults.websiteAnalysis.brandVoice}
+            </Col>
+          </Row>
+        </div>
+      ) : (
+        <div>
+          <Text strong>Website:</Text> {websiteUrl} - Analysis complete
+        </div>
+      ),
+      
+      3: (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Trending Keywords:</Text> AI Safety for Children, Emotional Regulation, Screen-Free Learning, Holiday Stress Management, Mindful Bedtime Routines
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Industry Focus:</Text> {stepResults.websiteAnalysis.businessType}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Content Opportunities:</Text> 5 trending topics identified
+            </Col>
+            <Col xs={24}>
+              <Text strong>Target Audience Match:</Text> Perfect fit for {stepResults.websiteAnalysis.targetAudience.toLowerCase()}
+            </Col>
+          </Row>
+        </div>
+      ),
+
+      4: (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Content Ideas:</Text> "How to Teach AI Safety", "5 Science-Backed Emotional Techniques", "50 Screen-Free Brain Activities", "Managing Holiday Stress", "10-Minute Mindful Bedtime Routine"
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Topics Identified:</Text> 5 compelling article concepts
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Brand-Matched Concepts:</Text> Tailored to {stepResults.websiteAnalysis.brandVoice.toLowerCase()} voice
+            </Col>
+            <Col xs={24}>
+              <Text strong>Content Angle:</Text> Expert guidance with practical, actionable advice for parents
+            </Col>
+          </Row>
+        </div>
+      ),
+
+      5: (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Visual Themes:</Text> Warm family moments, calming environments, child development, emotional support scenarios, cozy home settings
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Brand-Styled Images:</Text> Using {stepResults.websiteAnalysis.brandColors.primary} and {stepResults.websiteAnalysis.brandColors.secondary} color palette
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Hero Image Options:</Text> 5 professional concepts ready
+            </Col>
+            <Col xs={24}>
+              <Text strong>Visual Mood:</Text> Supportive, nurturing, and authentic family-focused imagery
+            </Col>
+          </Row>
+        </div>
+      ),
+      
+      6: selectedTopic ? (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Selected Topic:</Text><br />
+              <Text>{mockTopics.find(t => t.id === selectedTopic)?.title}</Text>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Content Angle:</Text> {mockTopics.find(t => t.id === selectedTopic)?.category} approach
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Target Keywords:</Text> {mockTopics.find(t => t.id === selectedTopic)?.popularity}
+            </Col>
+            <Col xs={24}>
+              <Text strong>Content Strategy:</Text> Expert guidance tailored to {stepResults.websiteAnalysis.targetAudience.toLowerCase()}
+            </Col>
+          </Row>
+        </div>
+      ) : (
+        <div>
+          <Text strong>Topic Selection:</Text> Ready to choose from 5 trending options
+        </div>
+      ),
+      
+      7: generatedContent ? (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Content Generated:</Text> {generatedContent.split('\n').find(line => line.startsWith('# '))?.substring(2) || 'Full article complete'}
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Article Length:</Text> {Math.round(generatedContent.length / 5)} words
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Brand Integration:</Text> {stepResults.websiteAnalysis.businessName} featured throughout
+            </Col>
+            <Col xs={24}>
+              <Text strong>Content Preview:</Text><br />
+              <Text style={{ fontStyle: 'italic' }}>"{generatedContent.split('\n').find(line => line && !line.startsWith('#') && line.length > 50)?.substring(0, 100) || 'Expert content ready for publication'}..."</Text>
+            </Col>
+          </Row>
+        </div>
+      ) : (
+        <div>
+          <Text strong>Content Creation:</Text> Full article generated and ready for editing
+        </div>
+      ),
+
+      8: selectedCMS ? (
+        <div>
+          <Row gutter={[12, 8]}>
+            <Col xs={24}>
+              <Text strong>Publishing Platform:</Text> {cmsOptions.find(c => c.id === selectedCMS)?.name}
+            </Col>
+            <Col xs={24}>
+              <Text strong>Target Website:</Text> <Text code>{websiteUrl}</Text>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Integration Status:</Text> {cmsOptions.find(c => c.id === selectedCMS)?.complexity} setup ready
+            </Col>
+            <Col xs={24} sm={12}>
+              <Text strong>Content Delivery:</Text> {cmsOptions.find(c => c.id === selectedCMS)?.integration}
+            </Col>
+          </Row>
+        </div>
+      ) : (
+        <div>
+          <Text strong>Publishing Setup:</Text> Ready to connect your website platform
+        </div>
+      )
+    };
+
+    const summary = stepSummaries[stepIndex];
+    if (!summary) return null;
+
+    // Create collapsed summary text for each step
+    const getCollapsedText = () => {
+      switch(stepIndex) {
+        case 0: return `Website: ${websiteUrl}`;
+        case 1: return `Website: ${websiteUrl} - Business detected: ${stepResults.websiteAnalysis.businessName || 'Analyzing...'}`;
+        case 2: return stepResults.websiteAnalysis.businessName 
+          ? `Company Details: ${stepResults.websiteAnalysis.businessName} - ${stepResults.websiteAnalysis.businessType}, Brand Colors: ${stepResults.websiteAnalysis.brandColors.primary}, ${stepResults.websiteAnalysis.brandColors.secondary}`
+          : `Website: ${websiteUrl} - Analysis complete`;
+        case 3: return 'Trending Keywords: AI Safety for Children, Emotional Regulation, Screen-Free Learning, Holiday Stress, Mindful Bedtime';
+        case 4: return 'Content Ideas: AI Safety Guide, Emotional Techniques, Screen-Free Activities, Holiday Stress Management, Bedtime Routines';
+        case 5: return `Visual Themes: Family moments, calming environments, child development - styled with ${stepResults.websiteAnalysis.brandColors.primary} brand colors`;
+        case 6: return selectedTopic 
+          ? `Selected Topic: ${mockTopics.find(t => t.id === selectedTopic)?.title?.substring(0, 60)}...`
+          : 'Topic Selection: 5 trending options ready';
+        case 7: return generatedContent 
+          ? `Content Generated: "${generatedContent.split('\n').find(line => line.startsWith('# '))?.substring(2, 60) || 'Full article'}..." - ${Math.round(generatedContent.length / 5)} words`
+          : 'Content Creation: Full article generated and ready';
+        case 8: return selectedCMS 
+          ? `Publishing Platform: ${cmsOptions.find(c => c.id === selectedCMS)?.name} → ${websiteUrl}`
+          : 'Publishing Setup: Ready to connect website platform';
+        default: return 'Step completed';
+      }
+    };
+
+    return (
+      <Card 
+        size="small" 
+        style={{ 
+          marginTop: '12px',
+          border: `1px solid ${stepResults.websiteAnalysis.brandColors.secondary}`,
+          backgroundColor: stepResults.websiteAnalysis.brandColors.secondary + '20'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            {expandedSteps.includes(stepIndex) ? summary : (
+              <Text>{getCollapsedText()}</Text>
+            )}
+          </div>
+          <Space>
+            <Button 
+              type="link" 
+              size="small"
+              icon={expandedSteps.includes(stepIndex) ? <DownOutlined style={{ transform: 'rotate(180deg)' }} /> : <DownOutlined />}
+              onClick={() => toggleStepExpansion(stepIndex)}
+            >
+              {expandedSteps.includes(stepIndex) ? 'Less' : 'More'}
+            </Button>
+            {stepIndex === 2 && (
+              <Button 
+                type="link" 
+                size="small"
+                icon={<SettingOutlined />}
+                onClick={() => editStepResults(1)}
+              >
+                Edit
+              </Button>
+            )}
+          </Space>
+        </div>
+      </Card>
+    );
+  };
+
+  const handleCMSSelection = (cmsId) => {
+    setSelectedCMS(cmsId);
+  };
+
+  const generateCMSCode = (cmsId) => {
+    const codeExamples = {
+      wordpress: `// WordPress Plugin Integration
+// Install: Download AutoBlog WordPress plugin
+// Configure: Add API key in Settings > AutoBlog
+
+// Webhook endpoint automatically created at:
+// ${websiteUrl}/wp-json/autoblog/v1/webhook
+
+// Content will be automatically posted to:
+// ${websiteUrl}/wp-admin/edit.php`,
+
+      shopify: `// Shopify Integration
+const shopify = new Shopify({
+  shopName: '${stepResults.websiteAnalysis.businessName?.toLowerCase()}',
+  apiKey: process.env.SHOPIFY_API_KEY,
+  password: process.env.SHOPIFY_PASSWORD
+});
+
+// AutoBlog webhook will POST to:
+// ${websiteUrl}/apps/autoblog/webhook
+
+// Blog posts created at:
+// ${websiteUrl}/blogs/news`,
+
+      ghost: `// Ghost CMS Integration
+const GhostAdminAPI = require('@tryghost/admin-api');
+
+const api = new GhostAdminAPI({
+  url: '${websiteUrl}',
+  key: process.env.GHOST_ADMIN_API_KEY,
+  version: 'v4'
+});
+
+// Webhook endpoint: ${websiteUrl}/ghost/api/v4/webhooks/autoblog/`,
+
+      webflow: `// Webflow CMS Integration
+const webflow = new WebflowAPI({
+  token: process.env.WEBFLOW_API_TOKEN
+});
+
+// Collection ID: your-blog-collection-id
+// Webhook: ${websiteUrl}/api/autoblog-webhook
+// Content published to: ${websiteUrl}/blog`,
+
+      custom: `// Custom CMS Integration
+app.post('/api/autoblog-webhook', async (req, res) => {
+  const { title, content, meta_description, tags } = req.body.data;
+  
+  // Your custom CMS logic here
+  await yourCMS.createPost({
+    title,
+    content,
+    description: meta_description,
+    tags,
+    status: 'published'
+  });
+  
+  res.status(200).send('OK');
+});`
+    };
+
+    return codeExamples[cmsId] || '// Integration code will be generated based on your selection';
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <SEOHead 
+        title="AutoBlog - AI Content Generation Platform"
+        description="Generate high-quality, trending blog posts automatically using AI. From topic discovery to full content creation in minutes. Export to any CMS or platform."
+        keywords="AI blog generation, automated content creation, AI writing, content marketing, blog automation, trending topics, content strategy"
+        canonicalUrl="/"
+      />
+
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <Title level={1} style={{ color: '#6B8CAE', marginBottom: '16px' }}>
+          AutoBlog - AI Content Generation
+        </Title>
+        <Paragraph style={{ fontSize: '18px', color: '#666', maxWidth: '600px', margin: '0 auto' }}>
+          Generate trending, high-quality blog posts automatically using AI. From topic discovery to full content creation, 
+          then export to any platform. <Text strong>Works with WordPress, Shopify, Ghost, and 15+ platforms.</Text>
+        </Paragraph>
+        
+        <Progress 
+          percent={progressPercent} 
+          status="active" 
+          strokeColor="#6B8CAE"
+          style={{ margin: '20px 0' }}
+        />
+        
+        <Text strong>{steps[currentStep]?.title}</Text>
+        <br />
+        <Text type="secondary">{steps[currentStep]?.description}</Text>
+      </div>
+
+      {/* Horizontal Steps */}
+      <div style={{ marginBottom: '30px' }}>
+        <Steps
+          current={currentStep}
+          size="small"
+          items={steps.map((step, index) => {
+            // Determine if step is locked
+            const isEmailLocked = index >= 4 && index <= 6 && !userEmail;
+            const isSignupLocked = index >= 7 && !userAccount;
+            const isLocked = isEmailLocked || isSignupLocked;
+            
+            return {
+              title: (
+                <span>
+                  {step.title}
+                  {isLocked && <Text style={{ color: '#ff4d4f', fontSize: '11px', display: 'block' }}>
+                    {isEmailLocked ? 'Email Required' : 'Account Required'}
+                  </Text>}
+                </span>
+              ),
+              icon: index < currentStep ? <CheckOutlined /> : (isLocked ? <GlobalOutlined style={{ opacity: 0.4 }} /> : step.icon),
+              status: index < currentStep ? 'finish' : index === currentStep ? 'process' : (isLocked ? 'error' : 'wait')
+            };
+          })}
+          style={{ marginBottom: '20px' }}
+        />
+        
+        {/* Step Summary Cards */}
+        <div>
+          {steps.map((step, index) => (
+            <div key={index}>
+              {renderStepSummary(index)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      {currentStep === 0 && (
+        <Card style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <Title level={3}>Enter Your Website URL</Title>
+          <Paragraph style={{ marginBottom: '30px' }}>
+            Enter your website URL so we can analyze your business and create relevant content recommendations.
+          </Paragraph>
+          
+          <Form layout="vertical" style={{ maxWidth: '400px', margin: '0 auto' }}>
+            <Form.Item
+              label="Website URL"
+              help="Example: mystore.com, myblog.org, mycompany.net"
+            >
+              <Input
+                size="large"
+                placeholder="Enter your website URL"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                prefix={<GlobalOutlined />}
+                onPressEnter={analyzeWebsite}
+              />
+            </Form.Item>
+            <Form.Item>
+              <Button 
+                type="primary" 
+                size="large" 
+                onClick={analyzeWebsite}
+                style={{ backgroundColor: '#6B8CAE', borderColor: '#6B8CAE' }}
+                icon={<ScanOutlined />}
+              >
+                Analyze Website
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      )}
+
+      {currentStep === 1 && (
+        <Card style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '20px' }}>
+            <Title level={3}>Analyzing Your Website</Title>
+            <Paragraph style={{ fontSize: '16px', color: '#666' }}>
+              {scanningMessage}
+            </Paragraph>
+            <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+              <Text strong>Website: </Text>
+              <Text code>{websiteUrl}</Text>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {currentStep === 2 && (
+        <Card style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <Title level={3} style={{ margin: 0 }}>Website Analysis Complete ✓</Title>
+            <Button 
+              icon={<SettingOutlined />} 
+              onClick={() => editStepResults(1)}
+              type="link"
+            >
+              Edit Results
+            </Button>
+          </div>
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                <Text strong>Business Name:</Text>
+                <br />
+                <Text>{stepResults.websiteAnalysis.businessName || 'Not detected'}</Text>
+              </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                <Text strong>Business Type:</Text>
+                <br />
+                <Text>{stepResults.websiteAnalysis.businessType}</Text>
+              </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                <Text strong>Target Audience:</Text>
+                <br />
+                <Text>{stepResults.websiteAnalysis.targetAudience}</Text>
+              </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                <Text strong>Brand Voice:</Text>
+                <br />
+                <Text>{stepResults.websiteAnalysis.brandVoice}</Text>
+              </div>
+            </Col>
+            <Col xs={24}>
+              <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                <Text strong>Brand Colors:</Text>
+                <br />
+                <Space>
+                  <div style={{ 
+                    display: 'inline-block', 
+                    width: '20px', 
+                    height: '20px', 
+                    backgroundColor: stepResults.websiteAnalysis.brandColors.primary,
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }} />
+                  <Text>Primary: {stepResults.websiteAnalysis.brandColors.primary}</Text>
+                  
+                  <div style={{ 
+                    display: 'inline-block', 
+                    width: '20px', 
+                    height: '20px', 
+                    backgroundColor: stepResults.websiteAnalysis.brandColors.secondary,
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }} />
+                  <Text>Secondary: {stepResults.websiteAnalysis.brandColors.secondary}</Text>
+                  
+                  <div style={{ 
+                    display: 'inline-block', 
+                    width: '20px', 
+                    height: '20px', 
+                    backgroundColor: stepResults.websiteAnalysis.brandColors.accent,
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }} />
+                  <Text>Accent: {stepResults.websiteAnalysis.brandColors.accent}</Text>
+                </Space>
+              </div>
+            </Col>
+            {stepResults.websiteAnalysis.description && (
+              <Col xs={24}>
+                <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                  <Text strong>Analysis Summary:</Text>
+                  <br />
+                  <Paragraph style={{ margin: '8px 0 0 0' }}>
+                    {stepResults.websiteAnalysis.description}
+                  </Paragraph>
+                </div>
+              </Col>
+            )}
+          </Row>
+          
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <Button 
+              type="primary" 
+              onClick={() => setCurrentStep(3)}
+              style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.primary, borderColor: stepResults.websiteAnalysis.brandColors.primary }}
+            >
+              Continue to Trend Discovery
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {currentStep >= 3 && currentStep < 5 && (
+        <Card style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '20px' }}>
+            <Title level={3}>{steps[currentStep]?.title}</Title>
+            <Paragraph>{steps[currentStep]?.description}</Paragraph>
+          </div>
+        </Card>
+      )}
+
+      {currentStep === 5 && (
+        <div>
+          <Title level={2} style={{ textAlign: 'center', marginBottom: '16px', color: stepResults.websiteAnalysis.brandColors.primary }}>
+            Select Your Topic
+          </Title>
+          
+          <Paragraph style={{ textAlign: 'center', marginBottom: '30px', color: '#666' }}>
+            Based on your {stepResults.websiteAnalysis.businessType.toLowerCase()} business analysis, here are trending topics perfect for your audience:
+          </Paragraph>
+          
+          {!userEmail && (
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '20px', 
+              padding: '16px', 
+              backgroundColor: '#fff7e6', 
+              border: '1px solid #ffd591',
+              borderRadius: '8px'
+            }}>
+              <BulbOutlined style={{ fontSize: '24px', color: '#fa8c16', marginBottom: '8px' }} />
+              <Text strong style={{ display: 'block', marginBottom: '8px' }}>
+                Free Content Strategy Available
+              </Text>
+              <Text>
+                Enter your email to see these custom content ideas and generate your first blog post free.
+              </Text>
+              <br />
+              <Button 
+                type="primary" 
+                style={{ marginTop: '12px' }}
+                onClick={() => setShowEmailGate(true)}
+              >
+                Get Free Content Strategy
+              </Button>
+            </div>
+          )}
+          
+          <Radio.Group 
+            value={selectedTopic} 
+            onChange={(e) => handleTopicSelect(e.target.value)}
+            style={{ width: '100%' }}
+          >
+            <Row gutter={[16, 16]}>
+              {mockTopics.map((topic) => (
+                <Col key={topic.id} xs={24} md={12} lg={12}>
+                  <Radio value={topic.id} style={{ width: '100%' }}>
+                    <Card 
+                      hoverable
+                      cover={
+                        <img 
+                          alt={topic.title} 
+                          src={topic.image} 
+                          style={{ height: '200px', objectFit: 'cover' }}
+                        />
+                      }
+                      style={{ 
+                        border: selectedTopic === topic.id ? `2px solid ${stepResults.websiteAnalysis.brandColors.primary}` : '1px solid #f0f0f0',
+                        margin: '8px 0'
+                      }}
+                    >
+                      <div style={{ marginBottom: '12px' }}>
+                        <Tag color="blue">{topic.category}</Tag>
+                        <Tag color="green">{topic.popularity}</Tag>
+                      </div>
+                      <Title level={4} style={{ marginBottom: '8px', fontSize: '16px' }}>
+                        {topic.title}
+                      </Title>
+                      <Paragraph style={{ color: '#666', fontSize: '14px' }}>
+                        {topic.subheader}
+                      </Paragraph>
+                    </Card>
+                  </Radio>
+                </Col>
+              ))}
+            </Row>
+          </Radio.Group>
+
+          <div style={{ textAlign: 'center', marginTop: '30px' }}>
+            <Space>
+              <Button onClick={resetDemo} icon={<ReloadOutlined />}>
+                Start Over
+              </Button>
+              <Button 
+                type="primary" 
+                size="large" 
+                onClick={generateContent}
+                loading={isLoading}
+                disabled={!selectedTopic}
+                style={{ 
+                  backgroundColor: stepResults.websiteAnalysis.brandColors.primary, 
+                  borderColor: stepResults.websiteAnalysis.brandColors.primary 
+                }}
+              >
+                Generate Full Content
+              </Button>
+            </Space>
+          </div>
+        </div>
+      )}
+
+      {currentStep === 7 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <Title level={2} style={{ margin: 0, color: stepResults.websiteAnalysis.brandColors.primary }}>
+              Edit Your Generated Content
+            </Title>
+            <Space>
+              <Button 
+                icon={<EyeOutlined />} 
+                onClick={() => setPreviewMode(!previewMode)}
+                type={previewMode ? 'primary' : 'default'}
+                style={previewMode ? {
+                  backgroundColor: stepResults.websiteAnalysis.brandColors.primary,
+                  borderColor: stepResults.websiteAnalysis.brandColors.primary
+                } : {}}
+              >
+                {previewMode ? 'Edit Mode' : 'Preview Mode'}
+              </Button>
+            </Space>
+          </div>
+
+          {!userAccount && (
+            <div style={{ 
+              textAlign: 'center', 
+              marginBottom: '20px', 
+              padding: '20px', 
+              backgroundColor: '#f6ffed', 
+              border: '1px solid #b7eb8f',
+              borderRadius: '8px'
+            }}>
+              <EditOutlined style={{ fontSize: '32px', color: '#52c41a', marginBottom: '12px' }} />
+              <Title level={4} style={{ marginBottom: '8px' }}>
+                Create Account to Edit & Publish
+              </Title>
+              <Text>
+                Your content is ready! Create a free account to edit, customize, and publish directly to your website.
+              </Text>
+              <br />
+              <div style={{ margin: '16px 0' }}>
+                <Tag color="blue">Edit Content</Tag>
+                <Tag color="green">Direct Publishing</Tag>
+                <Tag color="purple">Save Templates</Tag>
+                <Tag color="orange">Analytics</Tag>
+              </div>
+              <Button 
+                type="primary" 
+                size="large"
+                style={{ marginTop: '8px' }}
+                onClick={() => setShowSignupGate(true)}
+              >
+                Create Free Account
+              </Button>
+            </div>
+          )}
+
+          <Card style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: stepResults.websiteAnalysis.brandColors.secondary + '40', borderRadius: '6px' }}>
+              <Text strong style={{ color: stepResults.websiteAnalysis.brandColors.primary }}>
+                Content styled with your brand colors:
+              </Text>
+              <Space style={{ marginLeft: '12px' }}>
+                <div style={{ 
+                  display: 'inline-block', 
+                  width: '16px', 
+                  height: '16px', 
+                  backgroundColor: stepResults.websiteAnalysis.brandColors.primary,
+                  borderRadius: '2px' 
+                }} />
+                <div style={{ 
+                  display: 'inline-block', 
+                  width: '16px', 
+                  height: '16px', 
+                  backgroundColor: stepResults.websiteAnalysis.brandColors.secondary,
+                  borderRadius: '2px' 
+                }} />
+                <div style={{ 
+                  display: 'inline-block', 
+                  width: '16px', 
+                  height: '16px', 
+                  backgroundColor: stepResults.websiteAnalysis.brandColors.accent,
+                  borderRadius: '2px' 
+                }} />
+              </Space>
+            </div>
+
+            {previewMode ? (
+              <div style={{ minHeight: '600px' }}>
+                <Title level={4} style={{ marginBottom: '16px', color: stepResults.websiteAnalysis.brandColors.primary }}>
+                  Styled Preview
+                </Title>
+                {renderStyledContent(generatedContent)}
+              </div>
+            ) : (
+              <div>
+                <Title level={4} style={{ marginBottom: '16px' }}>Edit Content</Title>
+                <TextArea
+                  value={generatedContent}
+                  onChange={handleContentChange}
+                  rows={25}
+                  style={{ fontFamily: 'monospace', fontSize: '14px' }}
+                  placeholder="Your generated content will appear here..."
+                />
+              </div>
+            )}
+            
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <Space>
+                <Button onClick={resetDemo} icon={<ReloadOutlined />}>
+                  Start Over
+                </Button>
+                <Button onClick={() => editStepResults(1)} icon={<SettingOutlined />}>
+                  Edit Website Analysis
+                </Button>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  onClick={() => setCurrentStep(8)}
+                  style={{ 
+                    backgroundColor: stepResults.websiteAnalysis.brandColors.primary, 
+                    borderColor: stepResults.websiteAnalysis.brandColors.primary 
+                  }}
+                >
+                  Download Your Content
+                </Button>
+              </Space>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {currentStep === 8 && (
+        <div>
+          <Title level={2} style={{ textAlign: 'center', marginBottom: '16px', color: stepResults.websiteAnalysis.brandColors.primary }}>
+            Download Your Blog Post
+          </Title>
+          
+          <Paragraph style={{ textAlign: 'center', marginBottom: '30px', color: '#666', fontSize: '16px' }}>
+            Your AI-generated blog post is ready! Choose your preferred format to download and publish anywhere.
+            <br />
+            <Text strong>Ready to use content in multiple formats!</Text>
+          </Paragraph>
+
+          <Card style={{ marginBottom: '20px' }}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <FileMarkdownOutlined style={{ fontSize: '48px', color: stepResults.websiteAnalysis.brandColors.primary, marginBottom: '16px' }} />
+                  <Title level={4}>Markdown</Title>
+                  <Text style={{ color: '#666', display: 'block', marginBottom: '16px' }}>
+                    Perfect for Jekyll, Hugo, or GitHub Pages
+                  </Text>
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    onClick={exportAsMarkdown}
+                    style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.primary }}
+                  >
+                    Download .md
+                  </Button>
+                </div>
+              </Col>
+              
+              <Col xs={24} md={12}>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <FileTextOutlined style={{ fontSize: '48px', color: stepResults.websiteAnalysis.brandColors.accent, marginBottom: '16px' }} />
+                  <Title level={4}>HTML</Title>
+                  <Text style={{ color: '#666', display: 'block', marginBottom: '16px' }}>
+                    Copy-paste ready for any CMS
+                  </Text>
+                  <Button 
+                    size="large"
+                    onClick={exportAsHTML}
+                    style={{ borderColor: stepResults.websiteAnalysis.brandColors.accent, color: stepResults.websiteAnalysis.brandColors.accent }}
+                  >
+                    Download .html
+                  </Button>
+                </div>
+              </Col>
+              
+              <Col xs={24} md={12}>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <DatabaseOutlined style={{ fontSize: '48px', color: '#8FBC8F', marginBottom: '16px' }} />
+                  <Title level={4}>JSON</Title>
+                  <Text style={{ color: '#666', display: 'block', marginBottom: '16px' }}>
+                    For developers and API integrations
+                  </Text>
+                  <Button 
+                    size="large"
+                    onClick={exportAsJSON}
+                    style={{ borderColor: '#8FBC8F', color: '#8FBC8F' }}
+                  >
+                    Download .json
+                  </Button>
+                </div>
+              </Col>
+              
+              <Col xs={24} md={12}>
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                  <FileZipOutlined style={{ fontSize: '48px', color: '#FA8C16', marginBottom: '16px' }} />
+                  <Title level={4}>Complete Package</Title>
+                  <Text style={{ color: '#666', display: 'block', marginBottom: '16px' }}>
+                    All formats + metadata in one ZIP
+                  </Text>
+                  <Button 
+                    size="large"
+                    onClick={exportCompletePackage}
+                    style={{ borderColor: '#FA8C16', color: '#FA8C16' }}
+                    disabled
+                  >
+                    Download ZIP
+                  </Button>
+                </div>
+              </Col>
+            </Row>
+          </Card>
+
+          <Card style={{ marginBottom: '20px', backgroundColor: stepResults.websiteAnalysis.brandColors.secondary + '20' }}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={8}>
+                <Text strong style={{ color: stepResults.websiteAnalysis.brandColors.primary }}>📝 Content Summary</Text>
+                <br />
+                <Text>Title: {getCurrentPost().title}</Text>
+                <br />
+                <Text>Word Count: {getCurrentPost().wordCount} words</Text>
+                <br />
+                <Text>Reading Time: {getCurrentPost().readingTime} minutes</Text>
+              </Col>
+              <Col xs={24} md={8}>
+                <Text strong style={{ color: stepResults.websiteAnalysis.brandColors.primary }}>🏷️ Metadata</Text>
+                <br />
+                <Text>Category: {getCurrentPost().category}</Text>
+                <br />
+                <Text>Tags: {getCurrentPost().tags.join(', ')}</Text>
+                <br />
+                <Text>Source: {websiteUrl}</Text>
+              </Col>
+              <Col xs={24} md={8}>
+                <Text strong style={{ color: stepResults.websiteAnalysis.brandColors.primary }}>🎨 Brand Colors</Text>
+                <br />
+                <Space size="small">
+                  {Object.entries(stepResults.websiteAnalysis.brandColors).map(([key, color]) => (
+                    <div key={key} style={{
+                      display: 'inline-block',
+                      width: '20px',
+                      height: '20px',
+                      backgroundColor: color,
+                      borderRadius: '4px',
+                      border: '1px solid #ddd'
+                    }} title={`${key}: ${color}`} />
+                  ))}
+                </Space>
+                <br />
+                <Text style={{ fontSize: '12px', marginTop: '4px' }}>
+                  Styled with your brand
+                </Text>
+              </Col>
+            </Row>
+          </Card>
+
+          <div style={{ textAlign: 'center', marginTop: '30px' }}>
+            <Space size="large">
+              <Button onClick={resetDemo} icon={<ReloadOutlined />}>
+                Generate Another Post
+              </Button>
+              <Button onClick={() => setCurrentStep(7)} icon={<EditOutlined />}>
+                Back to Edit Content
+              </Button>
+            </Space>
+          </div>
+        </div>
+      )}
+
+      {/* Website Analysis Edit Modal */}
+      <Modal
+        title="Edit Website Analysis Results"
+        open={editingStep === 1}
+        onOk={() => {
+          // Save changes logic will be handled by form
+        }}
+        onCancel={cancelEdit}
+        width={800}
+        footer={null}
+      >
+        {editingStep === 1 && (
+          <Form
+            layout="vertical"
+            initialValues={stepResults.websiteAnalysis}
+            onFinish={(values) => saveStepResults(1, { websiteAnalysis: { ...values } })}
+          >
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Business Name"
+                  name="businessName"
+                  rules={[{ required: true, message: 'Business name is required' }]}
+                >
+                  <Input placeholder="Enter business name" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Business Type"
+                  name="businessType"
+                  rules={[{ required: true, message: 'Business type is required' }]}
+                >
+                  <Select>
+                    <Select.Option value="Child Wellness & Parenting">Child Wellness & Parenting</Select.Option>
+                    <Select.Option value="E-commerce">E-commerce</Select.Option>
+                    <Select.Option value="SaaS Technology">SaaS Technology</Select.Option>
+                    <Select.Option value="Healthcare">Healthcare</Select.Option>
+                    <Select.Option value="Education">Education</Select.Option>
+                    <Select.Option value="Professional Services">Professional Services</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item
+                  label="Target Audience"
+                  name="targetAudience"
+                  rules={[{ required: true, message: 'Target audience is required' }]}
+                >
+                  <TextArea rows={2} placeholder="Describe your target audience" />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item
+                  label="Content Focus"
+                  name="contentFocus"
+                  rules={[{ required: true, message: 'Content focus is required' }]}
+                >
+                  <TextArea rows={2} placeholder="Main topics and themes for content" />
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <Form.Item
+                  label="Brand Voice"
+                  name="brandVoice"
+                  rules={[{ required: true, message: 'Brand voice is required' }]}
+                >
+                  <Input placeholder="Describe your brand voice and tone" />
+                </Form.Item>
+              </Col>
+              
+              <Divider>Brand Colors</Divider>
+              
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Primary Color"
+                  name={['brandColors', 'primary']}
+                  rules={[{ required: true, message: 'Primary color is required' }]}
+                >
+                  <Input placeholder="#6B8CAE" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Secondary Color"
+                  name={['brandColors', 'secondary']}
+                  rules={[{ required: true, message: 'Secondary color is required' }]}
+                >
+                  <Input placeholder="#F4E5D3" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Accent Color"
+                  name={['brandColors', 'accent']}
+                  rules={[{ required: true, message: 'Accent color is required' }]}
+                >
+                  <Input placeholder="#8FBC8F" />
+                </Form.Item>
+              </Col>
+              
+              <Col xs={24}>
+                <Form.Item
+                  label="Analysis Summary"
+                  name="description"
+                >
+                  <TextArea rows={4} placeholder="Brief description of the website analysis..." />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <div style={{ textAlign: 'right', marginTop: '20px' }}>
+              <Space>
+                <Button onClick={cancelEdit}>Cancel</Button>
+                <Button type="primary" htmlType="submit">
+                  Save Changes
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        )}
+      </Modal>
+
+      {/* Demo Info */}
+      <Card style={{ marginTop: '40px', backgroundColor: '#f6f8fa', border: '1px solid #e1e8ed' }}>
+        <Title level={4} style={{ color: '#6B8CAE' }}>How AutoBlog Works</Title>
+        <Paragraph>
+          AutoBlog combines multiple AI technologies to create complete content automation workflows:
+        </Paragraph>
+        <ul>
+          <li><strong>Web Search Intelligence</strong> - Real-time trending topic discovery</li>
+          <li><strong>AI Content Generation</strong> - Professional blog posts with your brand voice</li>
+          <li><strong>Visual Creation</strong> - Custom images and graphics with DALL-E</li>
+          <li><strong>Multi-Platform Export</strong> - Ready-to-publish content in any format</li>
+        </ul>
+        <Paragraph>
+          Experience the future of content marketing with brand voice customization, SEO optimization, 
+          and automated content delivery to your website or CMS.
+        </Paragraph>
+      </Card>
+
+      {/* Email Gate Modal */}
+      <Modal
+        title="Unlock Your Content Strategy"
+        open={showEmailGate}
+        onCancel={() => setShowEmailGate(false)}
+        footer={null}
+        width={500}
+        centered
+      >
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <BulbOutlined style={{ fontSize: '48px', color: '#6B8CAE', marginBottom: '16px' }} />
+          <Title level={3}>See Your Custom Content Ideas</Title>
+          <Paragraph>
+            Get personalized content strategies and your first AI-generated blog post free.
+          </Paragraph>
+          <div style={{ backgroundColor: '#f6f8fa', padding: '16px', borderRadius: '8px', margin: '16px 0' }}>
+            <Text strong>What you'll unlock:</Text>
+            <ul style={{ textAlign: 'left', marginTop: '8px', marginBottom: '0' }}>
+              <li>Custom content ideas for your business</li>
+              <li>AI-generated blog post with your brand voice</li>
+              <li>Visual themes and image suggestions</li>
+              <li>CMS integration setup guide</li>
+            </ul>
+          </div>
+        </div>
+        
+        <Form form={emailForm} onFinish={handleEmailSubmit} layout="vertical">
+          <Form.Item
+            name="email"
+            label="Email Address"
+            rules={[
+              { required: true, message: 'Please enter your email' },
+              { type: 'email', message: 'Please enter a valid email' }
+            ]}
+          >
+            <Input 
+              placeholder="Enter your email address" 
+              size="large"
+              prefix={<GlobalOutlined />}
+            />
+          </Form.Item>
+          
+          <Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              size="large" 
+              block
+              style={{ marginBottom: '12px' }}
+            >
+              Get My Content Strategy Free
+            </Button>
+            <Button 
+              type="text" 
+              onClick={skipForDemo}
+              block
+              style={{ color: '#8c8c8c' }}
+            >
+              Skip for Demo (Development Only)
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Signup Gate Modal */}
+      <Modal
+        title="Create Your Free Account"
+        open={showSignupGate}
+        onCancel={() => setShowSignupGate(false)}
+        footer={null}
+        width={500}
+        centered
+      >
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <EditOutlined style={{ fontSize: '48px', color: '#6B8CAE', marginBottom: '16px' }} />
+          <Title level={3}>Complete Your Blog Post</Title>
+          <Paragraph>
+            Create your account to edit, download, and publish your AI-generated content.
+          </Paragraph>
+          <div style={{ backgroundColor: '#f6f8fa', padding: '16px', borderRadius: '8px', margin: '16px 0' }}>
+            <Text strong>Account benefits:</Text>
+            <ul style={{ textAlign: 'left', marginTop: '8px', marginBottom: '0' }}>
+              <li>Edit and customize your generated content</li>
+              <li>Direct publishing to WordPress, Shopify & more</li>
+              <li>Save content templates for future use</li>
+              <li>Track content performance analytics</li>
+            </ul>
+          </div>
+        </div>
+        
+        <Form form={signupForm} onFinish={handleSignupSubmit} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Full Name"
+            rules={[{ required: true, message: 'Please enter your name' }]}
+          >
+            <Input placeholder="Enter your full name" size="large" />
+          </Form.Item>
+          
+          <Form.Item
+            name="email"
+            label="Email Address"
+            rules={[
+              { required: true, message: 'Please enter your email' },
+              { type: 'email', message: 'Please enter a valid email' }
+            ]}
+          >
+            <Input 
+              placeholder="Enter your email address" 
+              size="large"
+              prefix={<GlobalOutlined />}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="company"
+            label="Company (Optional)"
+          >
+            <Input placeholder="Enter your company name" size="large" />
+          </Form.Item>
+          
+          <Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              size="large" 
+              block
+              style={{ marginBottom: '12px' }}
+            >
+              Create Account & Continue
+            </Button>
+            <Button 
+              type="text" 
+              onClick={skipForDemo}
+              block
+              style={{ color: '#8c8c8c' }}
+            >
+              Skip for Demo (Development Only)
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
-}
+};
 
 export default App;

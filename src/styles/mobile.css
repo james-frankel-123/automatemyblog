@@ -1,0 +1,84 @@
+/* Mobile-first responsive styles */
+
+/* Hide desktop navigation on mobile */
+@media (max-width: 767px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  
+  .mobile-nav {
+    display: flex !important;
+  }
+}
+
+/* Show desktop navigation on tablet and above */
+@media (min-width: 768px) {
+  .desktop-nav {
+    display: flex !important;
+  }
+  
+  .mobile-nav {
+    display: none !important;
+  }
+}
+
+/* Responsive title sizes */
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 2.2rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  .section-title {
+    font-size: 1.8rem !important;
+  }
+  
+  .card-title {
+    font-size: 1.1rem !important;
+  }
+  
+  .page-title {
+    font-size: 2.5rem !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: 2.8rem !important;
+  }
+}
+
+/* Responsive padding and margins */
+@media (max-width: 767px) {
+  .hero-section {
+    padding: 40px 20px !important;
+    margin-bottom: 40px !important;
+  }
+  
+  .content-section {
+    padding: 20px 15px !important;
+  }
+  
+  .mobile-header {
+    padding: 10px 0 !important;
+  }
+  
+  .mobile-container {
+    padding: 0 15px !important;
+  }
+}
+
+/* Responsive text sizes */
+@media (max-width: 480px) {
+  .hero-paragraph {
+    font-size: 18px !important;
+  }
+  
+  .feature-icon {
+    font-size: 36px !important;
+  }
+  
+  .feature-text {
+    font-size: 14px !important;
+  }
+}
