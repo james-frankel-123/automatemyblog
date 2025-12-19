@@ -28,6 +28,7 @@ const App = () => {
   const [signupForm] = Form.useForm();
   const [analysisCompleted, setAnalysisCompleted] = useState(false);
   const [strategyCompleted, setStrategyCompleted] = useState(false);
+  const [blogGenerating, setBlogGenerating] = useState(false);
   
   // Step results storage
   const [stepResults, setStepResults] = useState({
@@ -77,7 +78,8 @@ const App = () => {
     { title: 'Analyzing Website', icon: <ScanOutlined />, description: 'Scanning your website to understand your business' },
     { title: 'Building Strategy', icon: <SearchOutlined />, description: 'Creating content strategy based on your audience' },
     { title: 'Generating Ideas', icon: <BulbOutlined />, description: 'Creating compelling blog post previews with AI', requiresLogin: true },
-    { title: 'Editing Content', icon: <EditOutlined />, description: 'Review and customize your blog post', requiresLogin: true }
+    { title: 'Creating Content', icon: <EditOutlined />, description: 'AI is writing your personalized blog post', requiresLogin: true },
+    { title: 'Editing Content', icon: <EyeOutlined />, description: 'Review and customize your blog post', requiresLogin: true }
   ];
 
   const cmsOptions = [
@@ -466,7 +468,12 @@ const App = () => {
     try {
       setSelectedTopic(topicId); // Set the selected topic for loading state
       setIsLoading(true);
+      setBlogGenerating(true);
       setScanningMessage('Generating your blog post with AI...');
+      
+      // Move to Step 4 and show skeleton loading
+      setCurrentStep(4);
+      scrollToNextSection(4);
       
       // Find the selected topic from either real or mock topics
       const topics = stepResults.trendingTopics || mockTopics;
@@ -493,7 +500,13 @@ const App = () => {
         }));
         
         setGeneratedContent(blogPost.content);
-        setCurrentStep(7);
+        
+        // Complete blog generation and default to preview mode
+        setTimeout(() => {
+          setBlogGenerating(false);
+          setIsLoading(false);
+          setPreviewMode(true); // Default to preview mode
+        }, 1000);
       } else {
         throw new Error('No content generated');
       }
@@ -530,9 +543,18 @@ This is a fallback blog post generated when the AI service is unavailable. In a 
         finalContent: fallbackContent,
         selectedContent: topic
       }));
-      setCurrentStep(7);
+      setGeneratedContent(fallbackContent);
+      
+      // Complete blog generation with fallback content and default to preview mode
+      setTimeout(() => {
+        setBlogGenerating(false);
+        setIsLoading(false);
+        setPreviewMode(true); // Default to preview mode
+      }, 1000);
     } finally {
+      // Final cleanup
       setIsLoading(false);
+      setBlogGenerating(false);
     }
   };
 
@@ -781,7 +803,7 @@ ${post.content}
     }
   };
 
-  const progressPercent = ((currentStep + 1) / 4) * 100;
+  const progressPercent = ((currentStep + 1) / 5) * 100;
 
   // Helper function for auto-scrolling to next section
   const scrollToNextSection = (stepNumber) => {
@@ -1666,23 +1688,17 @@ app.post('/api/autoblog-webhook', async (req, res) => {
           />
         )}
         
-        {/* Progressive Business Overview Card - Only show after analysis is complete */}
-        {currentStep >= 2 && (
-          <div style={{ marginBottom: '20px' }}>
-            {renderBusinessOverview()}
-          </div>
-        )}
       </div>
 
       {/* Step Content */}
-      {currentStep === 1 && (
+      {currentStep >= 1 && (
         <div data-step="1">
           <Card style={{ marginBottom: '20px' }}>
             <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
               🔍 Analyzing Your Website
             </Title>
             
-            {!analysisCompleted && (
+            {!analysisCompleted && currentStep === 1 && (
               <div style={{ textAlign: 'center' }}>
                 <Spin size="large" />
                 <div style={{ marginTop: '20px' }}>
@@ -1702,31 +1718,33 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                 {/* Business Overview - using existing renderBusinessOverview component */}
                 {renderBusinessOverview()}
                 
-                <div style={{ textAlign: 'center', marginTop: '30px' }}>
-                  <Button 
-                    type="primary" 
-                    size="large"
-                    onClick={discoverTrends}
-                    style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.primary, borderColor: stepResults.websiteAnalysis.brandColors.primary }}
-                    icon={<SearchOutlined />}
-                  >
-                    Discover Trends
-                  </Button>
-                </div>
+                {currentStep === 1 && (
+                  <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                    <Button 
+                      type="primary" 
+                      size="large"
+                      onClick={discoverTrends}
+                      style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.primary, borderColor: stepResults.websiteAnalysis.brandColors.primary }}
+                      icon={<SearchOutlined />}
+                    >
+                      Discover Trends
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </Card>
         </div>
       )}
 
-      {currentStep === 2 && (
+      {currentStep >= 2 && (
         <div data-step="2">
           <Card style={{ marginBottom: '20px' }}>
             <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
               🎯 Building Strategy
             </Title>
             
-            {!strategyCompleted ? (
+            {!strategyCompleted && currentStep === 2 ? (
               <div style={{ textAlign: 'center' }}>
                 {/* Loading skeleton for strategy */}
                 <div style={{ padding: '20px' }}>
@@ -1741,17 +1759,19 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                 {/* Content Strategy - using existing renderContentStrategy component */}
                 {renderContentStrategy()}
                 
-                <div style={{ textAlign: 'center', marginTop: '30px' }}>
-                  <Button 
-                    type="primary" 
-                    size="large"
-                    onClick={generateBlogPreviews}
-                    style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.accent, borderColor: stepResults.websiteAnalysis.brandColors.accent }}
-                    icon={<BulbOutlined />}
-                  >
-                    Generate Blog Previews
-                  </Button>
-                </div>
+                {currentStep === 2 && (
+                  <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                    <Button 
+                      type="primary" 
+                      size="large"
+                      onClick={generateBlogPreviews}
+                      style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.accent, borderColor: stepResults.websiteAnalysis.brandColors.accent }}
+                      icon={<BulbOutlined />}
+                    >
+                      Generate Blog Previews
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -1760,7 +1780,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
 
       {/* Removed old loading screens for steps 3-5 since we simplified the flow */}
 
-      {currentStep === 3 && (
+      {currentStep >= 3 && (
         <div data-step="3">
           <Card style={{ marginBottom: '20px' }}>
             <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -1946,7 +1966,60 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         </div>
       )}
 
-      {currentStep === 7 && (
+      {currentStep === 4 && (
+        <div data-step="4">
+          <Card style={{ marginBottom: '20px' }}>
+            <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
+              ✍️ Generating Your Blog Post
+            </Title>
+            
+            {blogGenerating ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <Spin size="large" />
+                <div style={{ marginTop: '20px' }}>
+                  <Paragraph style={{ fontSize: '16px', color: '#666', marginBottom: '30px' }}>
+                    Creating your personalized blog post with AI...
+                  </Paragraph>
+                  
+                  {/* Blog post skeleton */}
+                  <div style={{ textAlign: 'left', maxWidth: '800px', margin: '0 auto' }}>
+                    <div style={{ height: '32px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '16px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '20px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '20px', width: '60%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '8px', width: '90%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '20px', width: '95%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '24px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '12px', width: '40%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                    <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '8px', width: '85%', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <Title level={4} style={{ color: stepResults.websiteAnalysis.brandColors.primary, marginBottom: '20px' }}>
+                  🎉 Your Blog Post is Ready!
+                </Title>
+                <Paragraph style={{ fontSize: '16px', marginBottom: '30px' }}>
+                  Your AI-generated blog post is complete and ready for review in preview mode.
+                </Paragraph>
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)', 
+                  padding: '20px', 
+                  borderRadius: '12px',
+                  border: '1px solid #d6e7ff',
+                  marginBottom: '20px'
+                }}>
+                  <Text style={{ fontSize: '14px', color: '#1890ff', fontWeight: 500 }}>
+                    📝 Defaulted to Preview Mode for easy reading
+                  </Text>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {(currentStep === 4 && !blogGenerating) && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <Title level={2} style={{ margin: 0, color: stepResults.websiteAnalysis.brandColors.primary }}>
