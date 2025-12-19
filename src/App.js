@@ -130,31 +130,22 @@ const App = () => {
   // Load trending topics when reaching step 2
   useEffect(() => {
     if (currentStep === 2) {
-      loadTrendingTopics();
+      // Small delay to let the user see the completion message, then auto-trigger
+      setTimeout(() => {
+        loadTrendingTopics();
+      }, 2000);
     }
   }, [currentStep]);
 
-  useEffect(() => {
-    if (currentStep >= 3 && currentStep < 5) {
-      const timer = setTimeout(() => {
-        setCurrentStep(prev => prev + 1);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep]);
+  // Removed automatic step progression - user should manually select topics and proceed
 
   // Check for gating at key points
   useEffect(() => {
-    // Email gate at step 4+ (Content Ideas)
-    if (currentStep >= 4 && currentStep <= 6 && !userEmail && !showEmailGate) {
-      setShowEmailGate(true);
-    }
-    
-    // Signup gate at step 7+ (Edit Content)
-    if (currentStep >= 7 && !userAccount && !showSignupGate) {
+    // Signup gate at step 4+ (Edit Content) - now requires account instead of just email
+    if (currentStep >= 4 && !userAccount && !showSignupGate) {
       setShowSignupGate(true);
     }
-  }, [currentStep, userEmail, userAccount]);
+  }, [currentStep, userAccount]);
 
   // Simulate website scanning with progressive messages
   useEffect(() => {
@@ -263,7 +254,7 @@ const App = () => {
         title: "Generating trending topic...",
         subheader: "AI is creating a compelling topic description...",
         image: "loading",
-        popularity: "Loading...",
+        seoBenefit: "Analyzing SEO potential...",
         category: "Loading...",
         isLoading: true,
         isContentLoading: true,
@@ -1470,15 +1461,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         </Card>
       )}
 
-      {currentStep >= 3 && currentStep < 5 && (
-        <Card style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <Spin size="large" />
-          <div style={{ marginTop: '20px' }}>
-            <Title level={3}>{steps[currentStep]?.title}</Title>
-            <Paragraph>{steps[currentStep]?.description}</Paragraph>
-          </div>
-        </Card>
-      )}
+      {/* Removed old loading screens for steps 3-5 since we simplified the flow */}
 
       {currentStep === 3 && (
         <div>
