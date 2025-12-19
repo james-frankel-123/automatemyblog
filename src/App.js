@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Typography, Radio, Spin, Progress, Input, message, Space, Tag, Form, Select, Slider, ColorPicker, Modal, Divider, Steps, Collapse } from 'antd';
 import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlined, GlobalOutlined, ScanOutlined, EyeOutlined, SettingOutlined, ApiOutlined, CloudUploadOutlined, CodeOutlined, DownOutlined, CloudDownloadOutlined, FileMarkdownOutlined, FileTextOutlined, DatabaseOutlined, FileZipOutlined, LockOutlined } from '@ant-design/icons';
+import './styles/design-system.css';
 import './styles/mobile.css';
 import SEOHead from './components/SEOHead';
 import autoBlogAPI from './services/api';
@@ -25,6 +26,8 @@ const App = () => {
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [emailForm] = Form.useForm();
   const [signupForm] = Form.useForm();
+  const [analysisCompleted, setAnalysisCompleted] = useState(false);
+  const [strategyCompleted, setStrategyCompleted] = useState(false);
   
   // Step results storage
   const [stepResults, setStepResults] = useState({
@@ -55,7 +58,8 @@ const App = () => {
       subheader: "As artificial intelligence becomes part of daily life, here's how to prepare your children for safe AI interactions",
       image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop",
       seoBenefit: "Optimized for: ai safety kids, digital parenting, child technology education",
-      category: "Digital Parenting"
+      category: "Digital Parenting",
+      trafficPrediction: "Likely to increase visits from tech-aware parents aged 28-42 who are concerned about AI's impact on children and actively search for 'AI safety for kids' and 'teaching children about technology'"
     },
     {
       id: 2,
@@ -64,16 +68,16 @@ const App = () => {
       subheader: "Research-proven methods to help highly sensitive children manage overwhelming emotions and build resilience",
       image: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=400&h=250&fit=crop",
       seoBenefit: "Will help rank for: emotional regulation kids, sensitive child parenting, child emotional health",
-      category: "Child Development"
+      category: "Child Development",
+      trafficPrediction: "Likely to increase visits from parents of highly sensitive children aged 3-10, particularly mothers aged 25-35 searching for 'emotional regulation techniques' and 'helping sensitive child cope'"
     }
   ].slice(0, 2); // Only show 2 topics
 
   const steps = [
-    { title: 'Enter Website', icon: <GlobalOutlined />, description: 'Enter your website URL for analysis' },
     { title: 'Analyzing Website', icon: <ScanOutlined />, description: 'Scanning your website to understand your business' },
-    { title: 'Discovering Trends', icon: <SearchOutlined />, description: 'Finding trending topics relevant to your industry' },
-    { title: 'Generating Ideas', icon: <BulbOutlined />, description: 'Creating compelling titles and subheaders with AI', requiresLogin: true },
-    { title: 'Edit Content', icon: <EditOutlined />, description: 'Review and customize your blog post', requiresLogin: true }
+    { title: 'Building Strategy', icon: <SearchOutlined />, description: 'Creating content strategy based on your audience' },
+    { title: 'Generating Ideas', icon: <BulbOutlined />, description: 'Creating compelling blog post previews with AI', requiresLogin: true },
+    { title: 'Editing Content', icon: <EditOutlined />, description: 'Review and customize your blog post', requiresLogin: true }
   ];
 
   const cmsOptions = [
@@ -204,10 +208,10 @@ const App = () => {
           }
         }));
 
-        // Move to next step
+        // Complete analysis but don't move to next step automatically
         setTimeout(() => {
           setIsLoading(false);
-          setCurrentStep(2);
+          setAnalysisCompleted(true);
         }, 1000);
 
       } else {
@@ -238,7 +242,7 @@ const App = () => {
         }
       }));
       
-      setTimeout(() => setCurrentStep(2), 1000);
+      setTimeout(() => setAnalysisCompleted(true), 1000);
     }
   };
 
@@ -272,10 +276,7 @@ const App = () => {
         trendingTopics: skeletonTopics
       }));
 
-      // Advance to step 3 immediately to show skeleton cards (Skip loading screens)
-      setTimeout(() => {
-        setCurrentStep(3);
-      }, 500);
+      // Step advancement is now handled by generateBlogPreviews function
 
       const { businessType, targetAudience, contentFocus } = stepResults.websiteAnalysis;
 
@@ -780,7 +781,35 @@ ${post.content}
     }
   };
 
-  const progressPercent = ((currentStep + 1) / 5) * 100;
+  const progressPercent = ((currentStep + 1) / 4) * 100;
+
+  // Helper function for auto-scrolling to next section
+  const scrollToNextSection = (stepNumber) => {
+    setTimeout(() => {
+      const nextSection = document.querySelector(`[data-step="${stepNumber}"]`);
+      if (nextSection) {
+        nextSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  // Function to handle "Discover Trends" button click
+  const discoverTrends = () => {
+    setCurrentStep(2);
+    scrollToNextSection(2);
+    // Auto-load strategy after a short delay
+    setTimeout(() => {
+      setStrategyCompleted(true);
+    }, 2000);
+  };
+
+  // Function to handle "Generate Blog Previews" button click  
+  const generateBlogPreviews = () => {
+    setCurrentStep(3);
+    scrollToNextSection(3);
+    // Start loading trending topics
+    loadTrendingTopics();
+  };
 
   const renderStyledContent = (content) => {
     const brandColors = stepResults.websiteAnalysis.brandColors;
@@ -1526,7 +1555,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         canonicalUrl="/"
       />
 
-      {/* Header */}
+      {/* Header with Integrated Website Input */}
       <div style={{ 
         textAlign: 'center', 
         marginBottom: window.innerWidth <= 767 ? '20px' : '40px' 
@@ -1539,16 +1568,52 @@ app.post('/api/autoblog-webhook', async (req, res) => {
           then export to any platform. <Text strong>Works with WordPress, Shopify, Ghost, and 15+ platforms.</Text>
         </Paragraph>
         
-        <Progress 
-          percent={progressPercent} 
-          status="active" 
-          strokeColor="#6B8CAE"
-          style={{ margin: '20px 0' }}
-        />
+        {currentStep === 0 && (
+          <div style={{ marginTop: '30px', maxWidth: '500px', margin: '30px auto 0' }}>
+            <Text style={{ display: 'block', marginBottom: '16px', fontSize: '16px', fontWeight: 500 }}>
+              Enter your website URL so we can analyze your business and create relevant content recommendations.
+            </Text>
+            <Form layout="vertical">
+              <Form.Item
+                help="Example: mystore.com, myblog.org, mycompany.net"
+                style={{ marginBottom: '16px' }}
+              >
+                <Input
+                  size="large"
+                  placeholder="Enter your website URL"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  prefix={<GlobalOutlined />}
+                  onPressEnter={analyzeWebsite}
+                />
+              </Form.Item>
+              <Form.Item>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  onClick={analyzeWebsite}
+                  style={{ backgroundColor: '#6B8CAE', borderColor: '#6B8CAE' }}
+                  icon={<ScanOutlined />}
+                >
+                  Analyze Website
+                </Button>
+              </Form.Item>
+            </Form>
+          </div>
+        )}
         
-        <Text strong>{steps[currentStep]?.title}</Text>
-        <br />
-        <Text type="secondary">{steps[currentStep]?.description}</Text>
+        {currentStep >= 1 && (
+          <>
+            <Progress 
+              percent={progressPercent} 
+              status="active" 
+              strokeColor="#6B8CAE"
+              style={{ margin: '20px 0' }}
+            />
+            
+            <Text strong>{steps[currentStep - 1]?.title}</Text>
+          </>
+        )}
       </div>
 
       {/* Current Step Indicator */}
@@ -1610,87 +1675,101 @@ app.post('/api/autoblog-webhook', async (req, res) => {
       </div>
 
       {/* Step Content */}
-      {currentStep === 0 && (
-        <Card style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <Title level={3}>Enter Your Website URL</Title>
-          <Paragraph style={{ marginBottom: '30px' }}>
-            Enter your website URL so we can analyze your business and create relevant content recommendations.
-          </Paragraph>
-          
-          <Form layout="vertical" style={{ maxWidth: '400px', margin: '0 auto' }}>
-            <Form.Item
-              label="Website URL"
-              help="Example: mystore.com, myblog.org, mycompany.net"
-            >
-              <Input
-                size="large"
-                placeholder="Enter your website URL"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                prefix={<GlobalOutlined />}
-                onPressEnter={analyzeWebsite}
-              />
-            </Form.Item>
-            <Form.Item>
-              <Button 
-                type="primary" 
-                size="large" 
-                onClick={analyzeWebsite}
-                style={{ backgroundColor: '#6B8CAE', borderColor: '#6B8CAE' }}
-                icon={<ScanOutlined />}
-              >
-                Analyze Website
-              </Button>
-            </Form.Item>
-          </Form>
-        </Card>
-      )}
-
       {currentStep === 1 && (
-        <Card style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <Spin size="large" />
-          <div style={{ marginTop: '20px' }}>
-            <Title level={3}>Analyzing Your Website</Title>
-            <Paragraph style={{ fontSize: '16px', color: '#666' }}>
-              {scanningMessage}
-            </Paragraph>
-            <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-              <Text strong>Website: </Text>
-              <Text code>{websiteUrl}</Text>
-            </div>
-          </div>
-        </Card>
+        <div data-step="1">
+          <Card style={{ marginBottom: '20px' }}>
+            <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
+              🔍 Analyzing Your Website
+            </Title>
+            
+            {!analysisCompleted && (
+              <div style={{ textAlign: 'center' }}>
+                <Spin size="large" />
+                <div style={{ marginTop: '20px' }}>
+                  <Paragraph style={{ fontSize: '16px', color: '#666' }}>
+                    {scanningMessage}
+                  </Paragraph>
+                  <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                    <Text strong>Website: </Text>
+                    <Text code>{websiteUrl}</Text>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {analysisCompleted && (
+              <div>
+                {/* Business Overview - using existing renderBusinessOverview component */}
+                {renderBusinessOverview()}
+                
+                <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    onClick={discoverTrends}
+                    style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.primary, borderColor: stepResults.websiteAnalysis.brandColors.primary }}
+                    icon={<SearchOutlined />}
+                  >
+                    Discover Trends
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
       {currentStep === 2 && (
-        <Card style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <Title level={3} style={{ color: stepResults.websiteAnalysis.brandColors.primary }}>
-            ✨ Analysis Complete!
-          </Title>
-          <Paragraph style={{ fontSize: '16px', margin: '16px 0' }}>
-            We've analyzed your website and understood your business. Automatically generating trending topics...
-          </Paragraph>
-        </Card>
+        <div data-step="2">
+          <Card style={{ marginBottom: '20px' }}>
+            <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
+              🎯 Building Strategy
+            </Title>
+            
+            {!strategyCompleted ? (
+              <div style={{ textAlign: 'center' }}>
+                {/* Loading skeleton for strategy */}
+                <div style={{ padding: '20px' }}>
+                  <div style={{ height: '20px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '12px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  <div style={{ height: '20px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '12px', width: '80%', margin: '0 auto 12px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', marginBottom: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  <div style={{ height: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px', width: '90%', margin: '0 auto', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {/* Content Strategy - using existing renderContentStrategy component */}
+                {renderContentStrategy()}
+                
+                <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    onClick={generateBlogPreviews}
+                    style={{ backgroundColor: stepResults.websiteAnalysis.brandColors.accent, borderColor: stepResults.websiteAnalysis.brandColors.accent }}
+                    icon={<BulbOutlined />}
+                  >
+                    Generate Blog Previews
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
       {/* Removed old loading screens for steps 3-5 since we simplified the flow */}
 
       {currentStep === 3 && (
-        <div>
-          <Title level={2} style={{ textAlign: 'center', marginBottom: '16px', color: stepResults.websiteAnalysis.brandColors.primary }}>
-            Generate your post
-          </Title>
-          
-          <Paragraph style={{ textAlign: 'center', marginBottom: '30px', color: '#666' }}>
-            Based on your {stepResults.websiteAnalysis.businessType.toLowerCase()} business analysis, here's your content strategy:
-          </Paragraph>
-
-          {/* Content Strategy Section */}
-          {renderContentStrategy()}
-          
-          <Title level={3} style={{ textAlign: 'center', marginTop: '40px', marginBottom: '20px', color: stepResults.websiteAnalysis.brandColors.primary }}>
-            Choose Your First Post
-          </Title>
+        <div data-step="3">
+          <Card style={{ marginBottom: '20px' }}>
+            <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
+              💡 Generating Ideas
+            </Title>
+            
+            <Paragraph style={{ textAlign: 'center', marginBottom: '30px', color: '#666' }}>
+              Based on your {stepResults.websiteAnalysis.businessType.toLowerCase()} business analysis, here are high-impact blog post ideas:
+            </Paragraph>
           
           <Row gutter={window.innerWidth <= 767 ? [8, 8] : [16, 16]}>
             {(stepResults.trendingTopics || mockTopics).map((topic) => (
@@ -1815,9 +1894,27 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                           <Title level={4} style={{ marginBottom: '8px', fontSize: '16px' }}>
                             {topic.title}
                           </Title>
-                          <Paragraph style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+                          <Paragraph style={{ color: '#666', fontSize: '14px', marginBottom: '12px' }}>
                             {topic.subheader}
                           </Paragraph>
+                          
+                          {topic.trafficPrediction && (
+                            <div style={{ 
+                              marginBottom: '16px', 
+                              padding: '12px', 
+                              backgroundColor: '#f0f8ff', 
+                              borderRadius: '6px',
+                              border: '1px solid #d6e7ff'
+                            }}>
+                              <Text style={{ fontSize: '12px', color: '#1890ff', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                                📊 Traffic Prediction:
+                              </Text>
+                              <Text style={{ fontSize: '11px', color: '#666', lineHeight: '1.4' }}>
+                                {topic.trafficPrediction}
+                              </Text>
+                            </div>
+                          )}
+                          
                           <div style={{ textAlign: 'center', marginTop: '16px' }}>
                             <Button
                               type="primary"
@@ -1830,7 +1927,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                                 width: '100%'
                               }}
                             >
-                              Generate Blog Post
+                              Generate Post
                             </Button>
                           </div>
                         </>
@@ -1845,6 +1942,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
               Start Over
             </Button>
           </div>
+          </Card>
         </div>
       )}
 
@@ -2243,23 +2341,6 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         )}
       </Modal>
 
-      {/* Demo Info */}
-      <Card style={{ marginTop: '40px', backgroundColor: '#f6f8fa', border: '1px solid #e1e8ed' }}>
-        <Title level={4} style={{ color: '#6B8CAE' }}>How AutoBlog Works</Title>
-        <Paragraph>
-          AutoBlog combines multiple AI technologies to create complete content automation workflows:
-        </Paragraph>
-        <ul>
-          <li><strong>Web Search Intelligence</strong> - Real-time trending topic discovery</li>
-          <li><strong>AI Content Generation</strong> - Professional blog posts with your brand voice</li>
-          <li><strong>Visual Creation</strong> - Custom images and graphics with DALL-E</li>
-          <li><strong>Multi-Platform Export</strong> - Ready-to-publish content in any format</li>
-        </ul>
-        <Paragraph>
-          Experience the future of content marketing with brand voice customization, SEO optimization, 
-          and automated content delivery to your website or CMS.
-        </Paragraph>
-      </Card>
 
       {/* Email Gate Modal */}
       <Modal
@@ -2336,17 +2417,17 @@ app.post('/api/autoblog-webhook', async (req, res) => {
       >
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <EditOutlined style={{ fontSize: '48px', color: '#6B8CAE', marginBottom: '16px' }} />
-          <Title level={3}>Complete Your Blog Post</Title>
+          <Title level={3}>Generate Your First Blog Post</Title>
           <Paragraph>
-            Create your account to edit, download, and publish your AI-generated content.
+            Get your <Text strong>one free blog post</Text> by creating an account! You'll be able to edit, customize, and download your AI-generated content.
           </Paragraph>
-          <div style={{ backgroundColor: '#f6f8fa', padding: '16px', borderRadius: '8px', margin: '16px 0' }}>
-            <Text strong>Account benefits:</Text>
+          <div style={{ backgroundColor: '#f0f8ff', padding: '16px', borderRadius: '8px', margin: '16px 0', border: '1px solid #d6e7ff' }}>
+            <Text strong style={{ color: '#1890ff' }}>🎉 What you'll get with your free account:</Text>
             <ul style={{ textAlign: 'left', marginTop: '8px', marginBottom: '0' }}>
-              <li>Edit and customize your generated content</li>
-              <li>Direct publishing to WordPress, Shopify & more</li>
-              <li>Save content templates for future use</li>
-              <li>Track content performance analytics</li>
+              <li>One complete AI-generated blog post</li>
+              <li>Full editing and customization tools</li>
+              <li>Multiple download formats (HTML, Markdown, etc.)</li>
+              <li>Brand-styled content with your colors</li>
             </ul>
           </div>
         </div>
