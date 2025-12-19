@@ -51,20 +51,56 @@
 /* Responsive padding and margins */
 @media (max-width: 767px) {
   .hero-section {
-    padding: 40px 20px !important;
-    margin-bottom: 40px !important;
+    padding: 20px 15px !important;
+    margin-bottom: 20px !important;
   }
   
   .content-section {
-    padding: 20px 15px !important;
+    padding: 15px 10px !important;
   }
   
   .mobile-header {
-    padding: 10px 0 !important;
+    padding: 5px 0 !important;
   }
   
   .mobile-container {
-    padding: 0 15px !important;
+    padding: 0 10px !important;
+  }
+
+  /* Compact main container */
+  body > div > div {
+    padding: 10px !important;
+    max-width: 100% !important;
+  }
+
+  /* Reduce card spacing */
+  .ant-card {
+    margin-bottom: 15px !important;
+  }
+
+  /* Compact progress and step indicators */
+  .ant-progress {
+    margin: 10px 0 !important;
+  }
+
+  /* Reduce header spacing */
+  .ant-typography h1 {
+    margin-bottom: 8px !important;
+    font-size: 1.8rem !important;
+  }
+
+  .ant-typography p {
+    margin-bottom: 15px !important;
+  }
+
+  /* Compact step cards */
+  .ant-steps {
+    margin-bottom: 15px !important;
+  }
+
+  /* Mobile card layout optimization */
+  .ant-col {
+    padding: 4px !important;
   }
 }
 

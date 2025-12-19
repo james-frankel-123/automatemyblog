@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Typography, Radio, Spin, Progress, Input, message, Space, Tag, Form, Select, Slider, ColorPicker, Modal, Divider, Steps, Collapse } from 'antd';
-import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlined, GlobalOutlined, ScanOutlined, EyeOutlined, SettingOutlined, ApiOutlined, CloudUploadOutlined, CodeOutlined, DownOutlined, CloudDownloadOutlined, FileMarkdownOutlined, FileTextOutlined, DatabaseOutlined, FileZipOutlined } from '@ant-design/icons';
+import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlined, GlobalOutlined, ScanOutlined, EyeOutlined, SettingOutlined, ApiOutlined, CloudUploadOutlined, CodeOutlined, DownOutlined, CloudDownloadOutlined, FileMarkdownOutlined, FileTextOutlined, DatabaseOutlined, FileZipOutlined, LockOutlined } from '@ant-design/icons';
 import './styles/mobile.css';
 import SEOHead from './components/SEOHead';
 import autoBlogAPI from './services/api';
@@ -54,7 +54,7 @@ const App = () => {
       title: "How to Teach Your Child About AI Safety: A Parent's Guide to the Digital Future",
       subheader: "As artificial intelligence becomes part of daily life, here's how to prepare your children for safe AI interactions",
       image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop",
-      popularity: "Trending +340%",
+      seoBenefit: "Optimized for: ai safety kids, digital parenting, child technology education",
       category: "Digital Parenting"
     },
     {
@@ -63,47 +63,17 @@ const App = () => {
       title: "5 Science-Backed Emotional Regulation Techniques That Actually Work for Sensitive Children",
       subheader: "Research-proven methods to help highly sensitive children manage overwhelming emotions and build resilience",
       image: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=400&h=250&fit=crop",
-      popularity: "Trending +280%",
+      seoBenefit: "Will help rank for: emotional regulation kids, sensitive child parenting, child emotional health",
       category: "Child Development"
-    },
-    {
-      id: 3,
-      trend: "Screen-Free Learning Activities",
-      title: "50 Screen-Free Activities That Boost Your Toddler's Brain Development",
-      subheader: "Creative, engaging alternatives to screen time that support cognitive growth and family bonding",
-      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400&h=250&fit=crop",
-      popularity: "Trending +195%",
-      category: "Early Learning"
-    },
-    {
-      id: 4,
-      trend: "Holiday Stress Management",
-      title: "Managing Holiday Stress When You Have Anxious Children: Expert Strategies That Work",
-      subheader: "Practical tips from child psychologists to help anxious children navigate holiday overwhelm with confidence",
-      image: "https://images.unsplash.com/photo-1512389098783-66b81f86e199?w=400&h=250&fit=crop",
-      popularity: "Trending +156%",
-      category: "Family Wellness"
-    },
-    {
-      id: 5,
-      trend: "Mindful Bedtime Routines",
-      title: "The 10-Minute Mindful Bedtime Routine That Transforms Sleep for the Whole Family",
-      subheader: "Simple mindfulness practices that help children (and parents) wind down and achieve deeper, more restful sleep",
-      image: "https://images.unsplash.com/photo-1520637836862-4d197d17c90a?w=400&h=250&fit=crop",
-      popularity: "Trending +143%",
-      category: "Sleep & Wellness"
     }
-  ];
+  ].slice(0, 2); // Only show 2 topics
 
   const steps = [
     { title: 'Enter Website', icon: <GlobalOutlined />, description: 'Enter your website URL for analysis' },
     { title: 'Analyzing Website', icon: <ScanOutlined />, description: 'Scanning your website to understand your business' },
     { title: 'Discovering Trends', icon: <SearchOutlined />, description: 'Finding trending topics relevant to your industry' },
-    { title: 'Generating Ideas', icon: <BulbOutlined />, description: 'Creating compelling titles and subheaders with AI' },
-    { title: 'Creating Visuals', icon: <EditOutlined />, description: 'Generating custom images with DALL-E' },
-    { title: 'Select & Generate', icon: <CheckOutlined />, description: 'Choose your topic and create full content' },
-    { title: 'Edit Content', icon: <EditOutlined />, description: 'Review and customize your blog post' },
-    { title: 'Download Content', icon: <CloudDownloadOutlined />, description: 'Export your blog post in multiple formats' }
+    { title: 'Generating Ideas', icon: <BulbOutlined />, description: 'Creating compelling titles and subheaders with AI', requiresLogin: true },
+    { title: 'Edit Content', icon: <EditOutlined />, description: 'Review and customize your blog post', requiresLogin: true }
   ];
 
   const cmsOptions = [
@@ -287,7 +257,7 @@ const App = () => {
       setScanningMessage('Generating trending topics with AI...');
 
       // Show skeleton topics immediately for better UX
-      const skeletonTopics = Array.from({ length: 5 }, (_, i) => ({
+      const skeletonTopics = Array.from({ length: 2 }, (_, i) => ({
         id: i + 1,
         trend: "Loading...",
         title: "Generating trending topic...",
@@ -305,9 +275,9 @@ const App = () => {
         trendingTopics: skeletonTopics
       }));
 
-      // Advance to step 5 immediately to show skeleton cards (Skip loading screens)
+      // Advance to step 3 immediately to show skeleton cards (Skip loading screens)
       setTimeout(() => {
-        setCurrentStep(5);
+        setCurrentStep(3);
       }, 500);
 
       const { businessType, targetAudience, contentFocus } = stepResults.websiteAnalysis;
@@ -403,7 +373,7 @@ const App = () => {
             isImageLoading: false
           }))
         }));
-        setCurrentStep(5);
+        setCurrentStep(3);
       }, 2000);
     }
   };
@@ -811,7 +781,7 @@ ${post.content}
     }
   };
 
-  const progressPercent = ((currentStep + 1) / 8) * 100;
+  const progressPercent = ((currentStep + 1) / 5) * 100;
 
   const renderStyledContent = (content) => {
     const brandColors = stepResults.websiteAnalysis.brandColors;
@@ -1248,18 +1218,25 @@ app.post('/api/autoblog-webhook', async (req, res) => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ 
+      padding: window.innerWidth <= 767 ? '10px' : '20px', 
+      maxWidth: '1200px', 
+      margin: '0 auto' 
+    }}>
       <SEOHead 
-        title="AutoBlog - AI Content Generation Platform"
+        title="Automate My Blog - AI Content Generation Platform"
         description="Generate high-quality, trending blog posts automatically using AI. From topic discovery to full content creation in minutes. Export to any CMS or platform."
         keywords="AI blog generation, automated content creation, AI writing, content marketing, blog automation, trending topics, content strategy"
         canonicalUrl="/"
       />
 
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: window.innerWidth <= 767 ? '20px' : '40px' 
+      }}>
         <Title level={1} style={{ color: '#6B8CAE', marginBottom: '16px' }}>
-          AutoBlog - AI Content Generation
+          Automate My Blog
         </Title>
         <Paragraph style={{ fontSize: '18px', color: '#666', maxWidth: '600px', margin: '0 auto' }}>
           Generate trending, high-quality blog posts automatically using AI. From topic discovery to full content creation, 
@@ -1278,41 +1255,66 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         <Text type="secondary">{steps[currentStep]?.description}</Text>
       </div>
 
-      {/* Horizontal Steps */}
-      <div style={{ marginBottom: '30px' }}>
-        <Steps
-          current={currentStep}
-          size="small"
-          items={steps.map((step, index) => {
-            // Determine if step is locked
-            const isEmailLocked = index >= 4 && index <= 6 && !userEmail;
-            const isSignupLocked = index >= 7 && !userAccount;
-            const isLocked = isEmailLocked || isSignupLocked;
-            
-            return {
-              title: (
-                <span>
-                  {step.title}
-                  {isLocked && <Text style={{ color: '#ff4d4f', fontSize: '11px', display: 'block' }}>
-                    {isEmailLocked ? 'Email Required' : 'Account Required'}
-                  </Text>}
-                </span>
-              ),
-              icon: index < currentStep ? <CheckOutlined /> : (isLocked ? <GlobalOutlined style={{ opacity: 0.4 }} /> : step.icon),
-              status: index < currentStep ? 'finish' : index === currentStep ? 'process' : (isLocked ? 'error' : 'wait')
-            };
-          })}
-          style={{ marginBottom: '20px' }}
-        />
-        
-        {/* Step Summary Cards */}
-        <div>
-          {steps.map((step, index) => (
-            <div key={index}>
-              {renderStepSummary(index)}
+      {/* Current Step Indicator */}
+      <div style={{ marginBottom: window.innerWidth <= 767 ? '15px' : '30px' }}>
+        {window.innerWidth <= 767 ? (
+          // Mobile: Show only current step
+          <div style={{ 
+            textAlign: 'center',
+            padding: '12px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '1px solid #e0e0e0'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+              {currentStep < steps.length ? steps[currentStep].icon : <CheckOutlined />}
+              <Text strong style={{ marginLeft: '8px', fontSize: '14px' }}>
+                Step {currentStep + 1} of {steps.length}
+              </Text>
             </div>
-          ))}
-        </div>
+            <Text style={{ fontSize: '16px', fontWeight: 'bold' }}>
+              {steps[currentStep]?.title}
+            </Text>
+            <br />
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {steps[currentStep]?.description}
+            </Text>
+          </div>
+        ) : (
+          // Desktop: Show full horizontal steps
+          <Steps
+            current={currentStep}
+            size="small"
+            items={steps.map((step, index) => {
+              const isLocked = step.requiresLogin && !userAccount;
+              
+              return {
+                title: (
+                  <span>
+                    {step.title}
+                    {isLocked && <Text style={{ color: '#ff4d4f', fontSize: '11px', display: 'block' }}>
+                      Account Required
+                    </Text>}
+                  </span>
+                ),
+                icon: index < currentStep ? <CheckOutlined /> : (isLocked ? <LockOutlined style={{ opacity: 0.6 }} /> : step.icon),
+                status: index < currentStep ? 'finish' : index === currentStep ? 'process' : (isLocked ? 'error' : 'wait')
+              };
+            })}
+            style={{ marginBottom: '20px' }}
+          />
+        )}
+        
+        {/* Step Summary Cards - Only on desktop */}
+        {window.innerWidth > 767 && (
+          <div>
+            {steps.map((step, index) => (
+              <div key={index}>
+                {renderStepSummary(index)}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Step Content */}
@@ -1478,10 +1480,10 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         </Card>
       )}
 
-      {currentStep === 5 && (
+      {currentStep === 3 && (
         <div>
           <Title level={2} style={{ textAlign: 'center', marginBottom: '16px', color: stepResults.websiteAnalysis.brandColors.primary }}>
-            Select Your Topic
+            Generate your post
           </Title>
           
           <Paragraph style={{ textAlign: 'center', marginBottom: '30px', color: '#666' }}>
@@ -1520,7 +1522,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
             onChange={(e) => handleTopicSelect(e.target.value)}
             style={{ width: '100%' }}
           >
-            <Row gutter={[16, 16]}>
+            <Row gutter={window.innerWidth <= 767 ? [8, 8] : [16, 16]}>
               {(stepResults.trendingTopics || mockTopics).map((topic) => (
                 <Col key={topic.id} xs={24} md={12} lg={12}>
                   <Radio value={topic.id} style={{ width: '100%' }}>
@@ -1639,7 +1641,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                         <>
                           <div style={{ marginBottom: '12px' }}>
                             <Tag color="blue">{topic.category}</Tag>
-                            <Tag color="green">{topic.popularity}</Tag>
+                            <Tag color="green" style={{ fontSize: '11px' }}>{topic.seoBenefit}</Tag>
                           </div>
                           <Title level={4} style={{ marginBottom: '8px', fontSize: '16px' }}>
                             {topic.title}
