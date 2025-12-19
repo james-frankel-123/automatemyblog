@@ -246,6 +246,12 @@ const App = () => {
     try {
       setIsLoading(true);
       setScanningMessage('Generating trending topics with AI...');
+      
+      // Reset previous topics to avoid lingering data
+      setStepResults(prev => ({
+        ...prev,
+        trendingTopics: []
+      }));
 
       // Show skeleton topics immediately for better UX
       const skeletonTopics = Array.from({ length: 2 }, (_, i) => ({
@@ -265,6 +271,7 @@ const App = () => {
         ...prev,
         trendingTopics: skeletonTopics
       }));
+      console.log('Set skeleton topics:', skeletonTopics.length, skeletonTopics);
 
       // Advance to step 3 immediately to show skeleton cards (Skip loading screens)
       setTimeout(() => {
@@ -275,10 +282,14 @@ const App = () => {
 
       // Call real backend API
       const topics = await autoBlogAPI.getTrendingTopics(businessType, targetAudience, contentFocus);
+      console.log('API returned topics:', topics?.length || 0, topics);
       
       if (topics && topics.length > 0) {
+        // Ensure we only use first 2 topics
+        const limitedTopics = topics.slice(0, 2);
+        
         // First, show topics content but keep images loading
-        const topicsWithContentLoaded = topics.map(topic => ({
+        const topicsWithContentLoaded = limitedTopics.map(topic => ({
           ...topic,
           isLoading: false,
           isContentLoading: false,
@@ -292,7 +303,7 @@ const App = () => {
 
         // Then progressively load images (simulate the backend processing)
         setTimeout(() => {
-          const finalTopics = topics.map(topic => ({
+          const finalTopics = limitedTopics.map(topic => ({
             ...topic,
             isLoading: false,
             isContentLoading: false,
@@ -303,7 +314,7 @@ const App = () => {
             ...prev,
             trendingTopics: finalTopics
           }));
-        }, 2000); // Images appear 2 seconds after content
+        }, 3000); // Images appear 3 seconds after content for clearer separation
       } else {
         // Fallback to mock topics with same progressive loading
         const mockWithContentLoaded = mockTopics.map(topic => ({
@@ -328,7 +339,7 @@ const App = () => {
               isImageLoading: false
             }))
           }));
-        }, 2000);
+        }, 3000);
       }
 
       // Complete loading (step 3 already set above)
@@ -365,7 +376,7 @@ const App = () => {
           }))
         }));
         setCurrentStep(3);
-      }, 2000);
+      }, 3000);
     }
   };
 
@@ -1473,32 +1484,6 @@ app.post('/api/autoblog-webhook', async (req, res) => {
             Based on your {stepResults.websiteAnalysis.businessType.toLowerCase()} business analysis, here are trending topics perfect for your audience:
           </Paragraph>
           
-          {!userEmail && (
-            <div style={{ 
-              textAlign: 'center', 
-              marginBottom: '20px', 
-              padding: '16px', 
-              backgroundColor: '#fff7e6', 
-              border: '1px solid #ffd591',
-              borderRadius: '8px'
-            }}>
-              <BulbOutlined style={{ fontSize: '24px', color: '#fa8c16', marginBottom: '8px' }} />
-              <Text strong style={{ display: 'block', marginBottom: '8px' }}>
-                Free Content Strategy Available
-              </Text>
-              <Text>
-                Enter your email to see these custom content ideas and generate your first blog post free.
-              </Text>
-              <br />
-              <Button 
-                type="primary" 
-                style={{ marginTop: '12px' }}
-                onClick={() => setShowEmailGate(true)}
-              >
-                Get Free Content Strategy
-              </Button>
-            </div>
-          )}
           
           <Radio.Group 
             value={selectedTopic} 
