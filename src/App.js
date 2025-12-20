@@ -35,15 +35,23 @@ const App = () => {
     websiteAnalysis: {
       businessType: 'Child Wellness & Parenting',
       businessName: '',
+      // Backward compatibility fields
       targetAudience: 'Parents of children aged 2-12',
       contentFocus: 'Emotional wellness, child development, mindful parenting',
       brandVoice: 'Warm, expert, supportive',
+      description: '',
+      keywords: [],
+      // New customer psychology fields
+      decisionMakers: 'Parents of children aged 2-12',
+      endUsers: 'Children experiencing anxiety or emotional challenges',
+      customerProblems: [],
+      searchBehavior: '',
+      customerLanguage: [],
       brandColors: {
         primary: '#6B8CAE',
         secondary: '#F4E5D3',
         accent: '#8FBC8F'
-      },
-      description: ''
+      }
     },
     trendingTopics: [],
     selectedContent: null,
@@ -1375,36 +1383,28 @@ ${post.content}
   const renderContentStrategy = () => {
     const analysis = stepResults.websiteAnalysis;
 
-    // Generate specific content ideas based on keywords
+    // Generate specific content ideas based on customer problems and language
     const generateContentIdeas = () => {
-      if (!analysis.keywords || analysis.keywords.length === 0) {
-        return [
-          {
-            keyword: `${analysis.businessType.toLowerCase()} guide`,
-            title: `Complete Guide to ${analysis.businessType} for ${analysis.targetAudience}`,
-            searchIntent: 'Educational - people learning about your industry'
-          },
-          {
-            keyword: `best ${analysis.businessType.toLowerCase()}`,
-            title: `Best ${analysis.businessType} Solutions: What ${analysis.targetAudience} Need to Know`,
-            searchIntent: 'Comparison - people evaluating options'
-          }
-        ];
-      }
+      // Use new customer language if available, otherwise fallback to keywords
+      const searchTerms = analysis.customerLanguage && analysis.customerLanguage.length > 0 
+        ? analysis.customerLanguage 
+        : (analysis.keywords && analysis.keywords.length > 0 
+          ? analysis.keywords 
+          : [`${analysis.businessType.toLowerCase()} help`, `solutions for ${analysis.decisionMakers || analysis.targetAudience}`]);
 
-      return analysis.keywords.slice(0, 6).map((keyword, index) => {
+      return searchTerms.slice(0, 6).map((searchTerm, index) => {
         const templates = [
-          { title: `Complete Guide to ${keyword}`, searchIntent: 'Educational - people learning' },
-          { title: `${keyword}: What You Need to Know`, searchIntent: 'Informational - seeking answers' },
-          { title: `Best ${keyword} Strategies for ${analysis.targetAudience}`, searchIntent: 'Solution-focused - ready to act' },
-          { title: `${keyword} Mistakes to Avoid`, searchIntent: 'Problem-aware - looking for guidance' },
-          { title: `How to Choose the Right ${keyword}`, searchIntent: 'Decision-stage - comparing options' },
-          { title: `${keyword} Explained: A ${analysis.brandVoice} Approach`, searchIntent: 'Educational with brand positioning' }
+          { title: `How to Help with ${searchTerm}`, searchIntent: 'Parents seeking immediate solutions' },
+          { title: `${searchTerm}: A Complete Parent's Guide`, searchIntent: 'Parents looking for comprehensive help' },
+          { title: `Best Solutions for ${searchTerm}`, searchIntent: 'Parents comparing options' },
+          { title: `Understanding ${searchTerm}: What Every Parent Should Know`, searchIntent: 'Parents seeking understanding' },
+          { title: `${searchTerm} - Proven Strategies That Work`, searchIntent: 'Parents wanting effective solutions' },
+          { title: `When Your Child Has ${searchTerm}: A Support Guide`, searchIntent: 'Parents in crisis seeking help' }
         ];
         
         const template = templates[index % templates.length];
         return {
-          keyword,
+          searchTerm,
           title: template.title,
           searchIntent: template.searchIntent
         };
@@ -1437,35 +1437,92 @@ ${post.content}
             📊 Content Strategy
           </Title>
           <Text style={{ fontSize: '16px', color: '#666' }}>
-            Specific keywords and content ideas to capture {analysis.targetAudience.toLowerCase()}
+            Connect with {analysis.decisionMakers || analysis.targetAudience} when they're searching for help
           </Text>
         </div>
 
-        {/* Target Keywords */}
+        {/* Customer Problems */}
+        {analysis.customerProblems && analysis.customerProblems.length > 0 && (
+          <div style={{ 
+            marginBottom: '24px',
+            padding: '16px', 
+            backgroundColor: analysis.brandColors.primary + '08', 
+            borderRadius: '8px',
+            border: `1px solid ${analysis.brandColors.primary}20`
+          }}>
+            <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
+              <span style={{ marginRight: '8px' }}>🔍</span>
+              What Drives Customers to Search
+            </Title>
+            <Text style={{ fontSize: '15px', lineHeight: '1.6', marginBottom: '12px' }}>
+              {analysis.decisionMakers || analysis.targetAudience} search online when they're struggling with:
+            </Text>
+            <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+              {analysis.customerProblems.map((problem, index) => (
+                <li key={index} style={{ marginBottom: '4px' }}>
+                  <Text>{problem}</Text>
+                </li>
+              ))}
+            </ul>
+            {analysis.searchBehavior && (
+              <Text style={{ fontSize: '14px', fontStyle: 'italic', marginTop: '12px', display: 'block' }}>
+                <strong>Search Behavior:</strong> {analysis.searchBehavior}
+              </Text>
+            )}
+          </div>
+        )}
+
+        {/* Customer Language / Keywords */}
         <div style={{ marginBottom: '24px' }}>
           <Title level={5} style={{ color: analysis.brandColors.accent, marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
-            <span style={{ marginRight: '8px' }}>🎯</span>
-            Target Keywords
+            <span style={{ marginRight: '8px' }}>💬</span>
+            How Customers Actually Search
           </Title>
-          {analysis.keywords && analysis.keywords.length > 0 ? (
-            <Space wrap style={{ marginBottom: '12px' }}>
-              {analysis.keywords.map((keyword, index) => (
-                <Tag 
-                  key={index} 
-                  color={analysis.brandColors.accent}
-                  style={{ 
-                    borderRadius: '12px',
-                    fontSize: '13px',
-                    padding: '6px 12px'
-                  }}
-                >
-                  {keyword}
-                </Tag>
-              ))}
-            </Space>
+          {(analysis.customerLanguage && analysis.customerLanguage.length > 0) ? (
+            <>
+              <Text style={{ marginBottom: '12px', display: 'block' }}>
+                Real phrases {analysis.decisionMakers || analysis.targetAudience} type into Google:
+              </Text>
+              <Space wrap style={{ marginBottom: '12px' }}>
+                {analysis.customerLanguage.map((phrase, index) => (
+                  <Tag 
+                    key={index} 
+                    color={analysis.brandColors.accent}
+                    style={{ 
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      padding: '6px 12px'
+                    }}
+                  >
+                    "{phrase}"
+                  </Tag>
+                ))}
+              </Space>
+            </>
+          ) : (analysis.keywords && analysis.keywords.length > 0) ? (
+            <>
+              <Text style={{ marginBottom: '12px', display: 'block' }}>
+                Target search terms for {analysis.businessType.toLowerCase()}:
+              </Text>
+              <Space wrap style={{ marginBottom: '12px' }}>
+                {analysis.keywords.map((keyword, index) => (
+                  <Tag 
+                    key={index} 
+                    color={analysis.brandColors.accent}
+                    style={{ 
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      padding: '6px 12px'
+                    }}
+                  >
+                    {keyword}
+                  </Tag>
+                ))}
+              </Space>
+            </>
           ) : (
             <Text style={{ color: '#666', fontStyle: 'italic' }}>
-              Keyword opportunities identified for {analysis.businessType.toLowerCase()} industry
+              Customer research needed for {analysis.businessType.toLowerCase()} industry
             </Text>
           )}
         </div>
@@ -1487,7 +1544,7 @@ ${post.content}
                   height: '100%'
                 }}>
                   <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                    "{idea.keyword}"
+                    "{idea.searchTerm}"
                   </Text>
                   <Text style={{ fontSize: '15px', marginBottom: '8px', display: 'block', fontWeight: 500 }}>
                     {idea.title}
@@ -1510,12 +1567,13 @@ ${post.content}
         }}>
           <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
             <span style={{ marginRight: '8px' }}>🚀</span>
-            How This Captures Your Target Audience
+            How This Connects You with Customers
           </Title>
           <Text style={{ fontSize: '15px', lineHeight: '1.6' }}>
-            Each blog post targets specific keywords that <strong>{analysis.targetAudience.toLowerCase()}</strong> are 
-            searching for. When they Google these terms, your content appears in search results. The {analysis.brandVoice.toLowerCase()} 
-            tone builds trust, and strategic calls-to-action guide them toward {analysis.contentFocus?.toLowerCase() || 'your services'}.
+            Every search represents someone with a real problem looking for help. When {analysis.decisionMakers || analysis.targetAudience} 
+            are struggling and turn to Google, your content becomes the trusted resource they find. Your {analysis.brandVoice.toLowerCase()} 
+            approach builds confidence, and your expertise guides them toward {analysis.contentFocus?.toLowerCase() || 'solutions'}. 
+            This is how traffic becomes trust, and trust becomes customers.
           </Text>
         </div>
       </Card>
