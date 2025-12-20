@@ -1558,13 +1558,37 @@ ${post.content}
           let scenarios = [];
           
           if (analysis.scenarios && analysis.scenarios.length > 0) {
-            // Use AI-generated scenarios with proper structure
-            scenarios = analysis.scenarios.map(scenario => ({
-              problem: scenario.customerProblem,
-              searchTerms: scenario.customerLanguage || [],
-              seoKeywords: scenario.seoKeywords || [],
-              contentIdeas: scenario.contentIdeas || []
-            }));
+            // Get trending topics data to integrate with AI scenarios
+            const availableTopics = stepResults.trendingTopics.length > 0 ? stepResults.trendingTopics : mockTopics;
+            
+            // Use AI-generated scenarios with enhanced topic information
+            scenarios = analysis.scenarios.map((scenario, index) => {
+              // Get related topic for this scenario
+              const relatedTopic = availableTopics[index % availableTopics.length];
+              
+              // Enhance content ideas with topic images and IDs
+              const enhancedContentIdeas = scenario.contentIdeas ? 
+                scenario.contentIdeas.map(idea => ({
+                  ...idea,
+                  image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(idea.title?.substring(0, 30) || 'Content')}`,
+                  topicId: relatedTopic?.id || index + 1
+                })) : 
+                [{
+                  title: relatedTopic?.title || `Solutions for ${scenario.customerProblem}`,
+                  searchIntent: relatedTopic?.trafficPrediction || `Targets ${analysis.decisionMakers || 'customers'} dealing with ${scenario.customerProblem.toLowerCase()}`,
+                  businessAlignment: scenario.conversionPath || `Drives toward ${analysis.websiteGoals || 'conversion'}`,
+                  image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(scenario.customerProblem.substring(0, 20))}`,
+                  topicId: relatedTopic?.id || index + 1
+                }];
+
+              return {
+                problem: scenario.customerProblem,
+                searchTerms: scenario.customerLanguage || [],
+                seoKeywords: scenario.seoKeywords || [],
+                contentIdeas: enhancedContentIdeas,
+                conversionPath: scenario.conversionPath
+              };
+            });
           } else {
             // Fallback to existing logic for backward compatibility
             let customerProblems = [];
@@ -1617,10 +1641,16 @@ ${post.content}
               }
             }
 
-            // Get content ideas for fallback
-            const contentIdeas = analysis.contentIdeas && analysis.contentIdeas.length > 0 
-              ? analysis.contentIdeas 
-              : generateContentIdeas();
+            // Get content ideas for fallback (combine AI + trending topics)
+            let contentIdeas = [];
+            if (analysis.contentIdeas && analysis.contentIdeas.length > 0) {
+              contentIdeas = analysis.contentIdeas;
+            } else {
+              contentIdeas = generateContentIdeas();
+            }
+
+            // Get trending topics data to integrate with scenarios
+            const availableTopics = stepResults.trendingTopics.length > 0 ? stepResults.trendingTopics : mockTopics;
 
             // Create fallback scenarios
             scenarios = customerProblems.map((problem, index) => {
@@ -1643,11 +1673,29 @@ ${post.content}
                 problem.toLowerCase().split(' ').slice(0, 2).join(' ')
               ].filter((keyword, idx, arr) => arr.indexOf(keyword) === idx).slice(0, 3);
 
+              // Get related topic from available topics
+              const relatedTopic = availableTopics[index % availableTopics.length];
+
+              // Enhance content ideas with topic information
+              const enhancedContentIdeas = relatedContentIdeas.length > 0 
+                ? relatedContentIdeas.map(idea => ({
+                    ...idea,
+                    image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(idea.title?.substring(0, 30) || 'Content')}`,
+                    topicId: relatedTopic?.id || index + 1
+                  }))
+                : [{
+                    title: relatedTopic?.title || `Solutions for ${problem}`,
+                    searchIntent: relatedTopic?.trafficPrediction || `Targets ${analysis.decisionMakers || 'customers'} seeking help with ${problem.toLowerCase()}`,
+                    businessAlignment: `Drives ${analysis.decisionMakers || 'customers'} toward ${analysis.websiteGoals || 'conversion'}`,
+                    image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(problem.substring(0, 20))}`,
+                    topicId: relatedTopic?.id || index + 1
+                  }];
+
               return {
                 problem,
                 searchTerms: relatedSearchTerms.length > 0 ? relatedSearchTerms : [searchTerms[index % searchTerms.length]],
                 seoKeywords,
-                contentIdeas: relatedContentIdeas.length > 0 ? relatedContentIdeas : [contentIdeas[index % contentIdeas.length]].filter(Boolean)
+                contentIdeas: enhancedContentIdeas
               };
             });
           }
@@ -1727,28 +1775,69 @@ ${post.content}
                         <span style={{ marginRight: '8px' }}>💡</span>
                         Content Ideas
                       </Title>
-                      {scenario.contentIdeas.map((idea, ideaIndex) => (
-                        <div 
+{scenario.contentIdeas.map((idea, ideaIndex) => (
+                        <Card
                           key={ideaIndex}
                           style={{ 
-                            padding: '12px',
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '6px',
-                            marginBottom: ideaIndex < scenario.contentIdeas.length - 1 ? '8px' : 0
+                            marginBottom: ideaIndex < scenario.contentIdeas.length - 1 ? '12px' : 0,
+                            border: `1px solid ${analysis.brandColors.accent}20`,
+                            borderRadius: '8px'
                           }}
+                          bodyStyle={{ padding: '16px' }}
+                          cover={
+                            idea.image && (
+                              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
+                                <img 
+                                  alt={idea.title} 
+                                  src={idea.image}
+                                  style={{ 
+                                    width: '100%', 
+                                    height: '180px', 
+                                    objectFit: 'cover',
+                                    borderRadius: '8px 8px 0 0'
+                                  }}
+                                />
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '8px',
+                                  right: '8px',
+                                  background: 'rgba(0,0,0,0.7)',
+                                  color: 'white',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '12px'
+                                }}>
+                                  Topic #{idea.topicId}
+                                </div>
+                              </div>
+                            )
+                          }
                         >
-                          <Text style={{ fontSize: '14px', fontWeight: 500, display: 'block', marginBottom: '4px' }}>
+                          <Text style={{ fontSize: '15px', fontWeight: 600, display: 'block', marginBottom: '8px', color: analysis.brandColors.primary }}>
                             {idea.title}
                           </Text>
-                          <Text style={{ fontSize: '12px', color: '#666', fontStyle: 'italic', marginBottom: '4px' }}>
+                          <Text style={{ fontSize: '13px', color: '#666', fontStyle: 'italic', marginBottom: '8px', display: 'block' }}>
                             {idea.searchIntent}
                           </Text>
                           {idea.businessAlignment && (
-                            <Text style={{ fontSize: '11px', color: analysis.brandColors.primary, fontWeight: 500, display: 'block' }}>
+                            <Text style={{ fontSize: '12px', color: analysis.brandColors.accent, fontWeight: 500, marginBottom: '12px', display: 'block' }}>
                               💼 {idea.businessAlignment}
                             </Text>
                           )}
-                        </div>
+                          <Button 
+                            type="primary"
+                            size="small"
+                            style={{
+                              backgroundColor: analysis.brandColors.primary,
+                              borderColor: analysis.brandColors.primary,
+                              borderRadius: '6px'
+                            }}
+                            onClick={() => generateContent(idea.topicId)}
+                            icon={<EditOutlined />}
+                          >
+                            Generate Post
+                          </Button>
+                        </Card>
                       ))}
                     </div>
 
