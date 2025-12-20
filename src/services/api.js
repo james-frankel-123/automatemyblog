@@ -1,7 +1,7 @@
 // AutoBlog API Service
 class AutoBlogAPI {
   constructor() {
-    // Use environment variable for backend URL, fallback to local development
+    // Use environment variable for backend URL
     this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   }
 
