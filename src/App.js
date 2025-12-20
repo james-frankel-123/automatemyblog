@@ -1552,342 +1552,278 @@ ${post.content}
           </Text>
         </div>
 
-        {/* Content Strategy Scenarios - AI-Generated */}
+        {/* Content Strategy - Topic-First with Expandable Strategy */}
         {(() => {
-          // Use AI-generated scenarios if available, otherwise create fallback scenarios
-          let scenarios = [];
+          // Get all available topics (real + mock) and enhance with strategy data
+          const availableTopics = stepResults.trendingTopics.length > 0 ? stepResults.trendingTopics : mockTopics;
           
-          if (analysis.scenarios && analysis.scenarios.length > 0) {
-            // Get trending topics data to integrate with AI scenarios
-            const availableTopics = stepResults.trendingTopics.length > 0 ? stepResults.trendingTopics : mockTopics;
+          // Create enhanced topics with strategy data
+          const enhancedTopics = availableTopics.map((topic, index) => {
+            // Get scenario data for this topic (AI or fallback)
+            let scenarioData = null;
             
-            // Use AI-generated scenarios with enhanced topic information
-            scenarios = analysis.scenarios.map((scenario, index) => {
-              // Get related topic for this scenario
-              const relatedTopic = availableTopics[index % availableTopics.length];
+            if (analysis.scenarios && analysis.scenarios[index]) {
+              scenarioData = analysis.scenarios[index];
+            } else {
+              // Create fallback scenario data
+              const businessType = analysis.businessType.toLowerCase();
+              const fallbackProblems = businessType.includes('comfort') || businessType.includes('children') 
+                ? [
+                    'Child having trouble sleeping through the night',
+                    'Dealing with bedtime anxiety and fears',
+                    'Need for emotional comfort during difficult times',
+                    'Finding ways to help sensitive children cope with stress'
+                  ]
+                : [
+                    `Finding reliable ${businessType} solutions`,
+                    `Understanding which ${businessType} options work best`,
+                    `Getting expert guidance for ${businessType} decisions`,
+                    `Solving problems related to ${businessType}`
+                  ];
               
-              // Enhance content ideas with topic images and IDs
-              const enhancedContentIdeas = scenario.contentIdeas ? 
-                scenario.contentIdeas.map(idea => ({
-                  ...idea,
-                  image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(idea.title?.substring(0, 30) || 'Content')}`,
-                  topicId: relatedTopic?.id || index + 1
-                })) : 
-                [{
-                  title: relatedTopic?.title || `Solutions for ${scenario.customerProblem}`,
-                  searchIntent: relatedTopic?.trafficPrediction || `Targets ${analysis.decisionMakers || 'customers'} dealing with ${scenario.customerProblem.toLowerCase()}`,
-                  businessAlignment: scenario.conversionPath || `Drives toward ${analysis.websiteGoals || 'conversion'}`,
-                  image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(scenario.customerProblem.substring(0, 20))}`,
-                  topicId: relatedTopic?.id || index + 1
-                }];
-
-              return {
-                problem: scenario.customerProblem,
-                searchTerms: scenario.customerLanguage || [],
-                seoKeywords: scenario.seoKeywords || [],
-                contentIdeas: enhancedContentIdeas,
-                conversionPath: scenario.conversionPath
-              };
-            });
-          } else {
-            // Fallback to existing logic for backward compatibility
-            let customerProblems = [];
-            
-            if (analysis.customerProblems && analysis.customerProblems.length > 0) {
-              customerProblems = analysis.customerProblems;
-            } else {
-              const businessType = analysis.businessType.toLowerCase();
-              if (businessType.includes('comfort') || businessType.includes('children')) {
-                customerProblems = [
-                  'Child having trouble sleeping through the night',
-                  'Dealing with bedtime anxiety and fears',
-                  'Need for emotional comfort during difficult times',
-                  'Finding ways to help sensitive children cope with stress'
-                ];
-              } else {
-                const audience = analysis.decisionMakers || analysis.targetAudience || 'customers';
-                customerProblems = [
-                  `Finding reliable ${businessType} solutions`,
-                  `Understanding which ${businessType} options work best`,
-                  `Getting expert guidance for ${businessType} decisions`,
-                  `Solving problems related to ${businessType}`
-                ];
-              }
-            }
-
-            // Get search terms for fallback
-            let searchTerms = [];
-            if (analysis.customerLanguage && analysis.customerLanguage.length > 0) {
-              searchTerms = analysis.customerLanguage;
-            } else if (analysis.keywords && analysis.keywords.length > 0) {
-              searchTerms = analysis.keywords;
-            } else {
-              const businessType = analysis.businessType.toLowerCase();
-              if (businessType.includes('comfort') || businessType.includes('children')) {
-                searchTerms = [
-                  'bedtime anxiety',
-                  'calming toys for kids', 
-                  'comfort items for children',
-                  'helping anxious children sleep'
-                ];
-              } else {
-                const audience = analysis.decisionMakers || analysis.targetAudience || 'customers';
-                searchTerms = [
-                  `best ${businessType} solutions`,
-                  `${businessType} help`,
-                  `how to choose ${businessType}`,
-                  `${businessType} guide`
-                ];
-              }
-            }
-
-            // Get content ideas for fallback (combine AI + trending topics)
-            let contentIdeas = [];
-            if (analysis.contentIdeas && analysis.contentIdeas.length > 0) {
-              contentIdeas = analysis.contentIdeas;
-            } else {
-              contentIdeas = generateContentIdeas();
-            }
-
-            // Get trending topics data to integrate with scenarios
-            const availableTopics = stepResults.trendingTopics.length > 0 ? stepResults.trendingTopics : mockTopics;
-
-            // Create fallback scenarios
-            scenarios = customerProblems.map((problem, index) => {
-              const relatedSearchTerms = searchTerms.slice(
-                Math.floor(index * searchTerms.length / customerProblems.length),
-                Math.floor((index + 1) * searchTerms.length / customerProblems.length)
-              );
+              const fallbackSearchTerms = businessType.includes('comfort') || businessType.includes('children')
+                ? ['bedtime anxiety', 'calming toys for kids', 'comfort items for children', 'helping anxious children sleep']
+                : [`best ${businessType} solutions`, `${businessType} help`, `how to choose ${businessType}`, `${businessType} guide`];
               
-              const relatedContentIdeas = contentIdeas.slice(
-                Math.floor(index * contentIdeas.length / customerProblems.length),
-                Math.floor((index + 1) * contentIdeas.length / customerProblems.length)
-              );
-
-              // Generate basic SEO keywords for fallback
-              const businessType = analysis.businessType.toLowerCase();
-              const seoKeywords = [
-                `${businessType} solutions`,
-                `best ${businessType}`,
-                `${businessType} guide`,
-                problem.toLowerCase().split(' ').slice(0, 2).join(' ')
-              ].filter((keyword, idx, arr) => arr.indexOf(keyword) === idx).slice(0, 3);
-
-              // Get related topic from available topics
-              const relatedTopic = availableTopics[index % availableTopics.length];
-
-              // Enhance content ideas with topic information
-              const enhancedContentIdeas = relatedContentIdeas.length > 0 
-                ? relatedContentIdeas.map(idea => ({
-                    ...idea,
-                    image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(idea.title?.substring(0, 30) || 'Content')}`,
-                    topicId: relatedTopic?.id || index + 1
-                  }))
-                : [{
-                    title: relatedTopic?.title || `Solutions for ${problem}`,
-                    searchIntent: relatedTopic?.trafficPrediction || `Targets ${analysis.decisionMakers || 'customers'} seeking help with ${problem.toLowerCase()}`,
-                    businessAlignment: `Drives ${analysis.decisionMakers || 'customers'} toward ${analysis.websiteGoals || 'conversion'}`,
-                    image: relatedTopic?.image || `https://via.placeholder.com/400x250/6B8CAE/FFFFFF?text=${encodeURIComponent(problem.substring(0, 20))}`,
-                    topicId: relatedTopic?.id || index + 1
-                  }];
-
-              return {
-                problem,
-                searchTerms: relatedSearchTerms.length > 0 ? relatedSearchTerms : [searchTerms[index % searchTerms.length]],
-                seoKeywords,
-                contentIdeas: enhancedContentIdeas
+              const fallbackKeywords = [`${businessType} solutions`, `best ${businessType}`, `${businessType} guide`];
+              
+              scenarioData = {
+                customerProblem: fallbackProblems[index % fallbackProblems.length],
+                customerLanguage: fallbackSearchTerms.slice(index, index + 2),
+                seoKeywords: fallbackKeywords,
+                conversionPath: `Educational content drives ${analysis.decisionMakers || 'customers'} toward ${analysis.websiteGoals || 'conversion'}`
               };
-            });
-          }
+            }
+
+            return {
+              ...topic,
+              scenario: scenarioData
+            };
+          });
 
           return (
             <Row gutter={[24, 24]}>
-              {scenarios.map((scenario, index) => (
-                <Col key={index} xs={24} lg={12}>
+              {enhancedTopics.map((topic, index) => (
+                <Col key={topic.id || index} xs={24} lg={12}>
                   <Card 
                     style={{ 
-                      height: '100%',
                       border: `2px solid ${analysis.brandColors.primary}20`,
-                      borderRadius: '12px'
+                      borderRadius: '12px',
+                      overflow: 'hidden'
                     }}
-                    bodyStyle={{ padding: '20px' }}
-                  >
-                    {/* Customer Problem */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '8px' }}>🔍</span>
-                        Customer Problem
-                      </Title>
-                      <Text style={{ fontSize: '15px', fontWeight: 500 }}>
-                        {scenario.problem}
-                      </Text>
-                    </div>
-
-                    {/* How They Search */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <Title level={5} style={{ color: analysis.brandColors.accent, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '8px' }}>💬</span>
-                        How They Search
-                      </Title>
-                      <Space wrap>
-                        {scenario.searchTerms.map((term, termIndex) => (
-                          <Tag 
-                            key={termIndex}
-                            color={analysis.brandColors.accent}
+                    bodyStyle={{ padding: '0' }}
+                    cover={
+                      topic.image && (
+                        <div style={{ position: 'relative' }}>
+                          <img 
+                            alt={topic.title} 
+                            src={topic.image}
                             style={{ 
-                              borderRadius: '8px',
-                              fontSize: '12px',
-                              padding: '4px 8px'
+                              width: '100%', 
+                              height: '200px', 
+                              objectFit: 'cover'
                             }}
-                          >
-                            "{term}"
-                          </Tag>
-                        ))}
-                      </Space>
-                    </div>
-
-                    {/* SEO Keywords */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '8px' }}>🔑</span>
-                        SEO Keywords
-                      </Title>
-                      <Space wrap>
-                        {scenario.seoKeywords && scenario.seoKeywords.map((keyword, keywordIndex) => (
-                          <Tag 
-                            key={keywordIndex}
-                            color={analysis.brandColors.primary}
-                            style={{ 
-                              borderRadius: '8px',
-                              fontSize: '12px',
-                              padding: '4px 8px'
-                            }}
-                          >
-                            {keyword}
-                          </Tag>
-                        ))}
-                      </Space>
-                    </div>
-
-                    {/* Content Ideas */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '8px' }}>💡</span>
-                        Content Ideas
-                      </Title>
-{scenario.contentIdeas.map((idea, ideaIndex) => (
-                        <Card
-                          key={ideaIndex}
-                          style={{ 
-                            marginBottom: ideaIndex < scenario.contentIdeas.length - 1 ? '12px' : 0,
-                            border: `1px solid ${analysis.brandColors.accent}20`,
-                            borderRadius: '8px'
-                          }}
-                          bodyStyle={{ padding: '16px' }}
-                          cover={
-                            idea.image && (
-                              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
-                                <img 
-                                  alt={idea.title} 
-                                  src={idea.image}
-                                  style={{ 
-                                    width: '100%', 
-                                    height: '180px', 
-                                    objectFit: 'cover',
-                                    borderRadius: '8px 8px 0 0'
-                                  }}
-                                />
-                                <div style={{
-                                  position: 'absolute',
-                                  top: '8px',
-                                  right: '8px',
-                                  background: 'rgba(0,0,0,0.7)',
-                                  color: 'white',
-                                  padding: '4px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '12px'
-                                }}>
-                                  Topic #{idea.topicId}
-                                </div>
-                              </div>
-                            )
-                          }
-                        >
-                          <Text style={{ fontSize: '15px', fontWeight: 600, display: 'block', marginBottom: '8px', color: analysis.brandColors.primary }}>
-                            {idea.title}
-                          </Text>
-                          <Text style={{ fontSize: '13px', color: '#666', fontStyle: 'italic', marginBottom: '8px', display: 'block' }}>
-                            {idea.searchIntent}
-                          </Text>
-                          {idea.businessAlignment && (
-                            <Text style={{ fontSize: '12px', color: analysis.brandColors.accent, fontWeight: 500, marginBottom: '12px', display: 'block' }}>
-                              💼 {idea.businessAlignment}
-                            </Text>
-                          )}
-                          <Button 
-                            type="primary"
-                            size="small"
-                            style={{
-                              backgroundColor: analysis.brandColors.primary,
-                              borderColor: analysis.brandColors.primary,
-                              borderRadius: '6px'
-                            }}
-                            onClick={() => generateContent(idea.topicId)}
-                            icon={<EditOutlined />}
-                          >
-                            Generate Post
-                          </Button>
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Conversion Path */}
-                    {scenario.conversionPath && (
-                      <div style={{ marginBottom: '20px' }}>
-                        <Title level={5} style={{ color: analysis.brandColors.accent, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-                          <span style={{ marginRight: '8px' }}>🎯</span>
-                          Conversion Strategy
-                        </Title>
-                        <div style={{ 
-                          padding: '12px',
-                          backgroundColor: analysis.brandColors.accent + '05',
-                          borderRadius: '6px',
-                          border: `1px solid ${analysis.brandColors.accent}15`
-                        }}>
-                          <Text style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                            {scenario.conversionPath}
-                          </Text>
+                          />
+                          <div style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            background: 'rgba(0,0,0,0.8)',
+                            color: 'white',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            fontWeight: 500
+                          }}>
+                            Topic #{topic.id}
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    {/* How This Connects */}
-                    <div style={{ 
-                      padding: '16px',
-                      backgroundColor: analysis.brandColors.accent + '08', 
-                      borderRadius: '8px',
-                      border: `1px solid ${analysis.brandColors.accent}20`
-                    }}>
-                      <Title level={5} style={{ color: analysis.brandColors.accent, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '8px' }}>🚀</span>
-                        How This Connects
+                      )
+                    }
+                  >
+                    <div style={{ padding: '20px' }}>
+                      {/* Topic Title and Description */}
+                      <Title level={4} style={{ 
+                        color: analysis.brandColors.primary, 
+                        marginBottom: '8px',
+                        fontSize: '18px',
+                        lineHeight: '1.4'
+                      }}>
+                        {topic.title}
                       </Title>
-                      <Text style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                        {analysis.connectionMessage ? (
-                          analysis.connectionMessage
-                        ) : (
-                          <>
-                            When ${analysis.decisionMakers || analysis.targetAudience} search for{' '}
-                            {scenario.searchTerms.map((term, idx) => (
-                              <Text key={idx} strong style={{ color: analysis.brandColors.accent }}>
-                                "{term}"{idx < scenario.searchTerms.length - 1 ? ', ' : ''}
-                              </Text>
-                            ))}, your {analysis.brandVoice.toLowerCase()} content addressing{' '}
-                            <Text strong>{scenario.problem.toLowerCase()}</Text> positions you as the trusted expert they need.
-                            Your content becomes their solution.
-                          </>
-                        )}
+                      
+                      <Text style={{ 
+                        fontSize: '14px', 
+                        color: '#666', 
+                        lineHeight: '1.5',
+                        display: 'block',
+                        marginBottom: '16px'
+                      }}>
+                        {topic.subheader}
                       </Text>
+
+                      {/* Action Buttons */}
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <Button 
+                          type="primary"
+                          size="large"
+                          block
+                          style={{
+                            backgroundColor: analysis.brandColors.primary,
+                            borderColor: analysis.brandColors.primary,
+                            borderRadius: '8px',
+                            height: '44px',
+                            fontWeight: 600
+                          }}
+                          onClick={() => generateContent(topic.id)}
+                          icon={<EditOutlined />}
+                        >
+                          Generate Post
+                        </Button>
+                        
+                        <Collapse 
+                          ghost
+                          style={{ 
+                            backgroundColor: 'transparent',
+                            border: 'none'
+                          }}
+                        >
+                          <Collapse.Panel 
+                            header={
+                              <Text style={{ 
+                                color: analysis.brandColors.accent, 
+                                fontWeight: 500,
+                                fontSize: '14px'
+                              }}>
+                                📊 Explain the Strategy
+                              </Text>
+                            }
+                            key="strategy"
+                            style={{ 
+                              backgroundColor: analysis.brandColors.accent + '05',
+                              borderRadius: '6px',
+                              border: `1px solid ${analysis.brandColors.accent}20`
+                            }}
+                          >
+                            {/* Strategy Content */}
+                            <div style={{ padding: '16px 0' }}>
+                              
+                              {/* Target Persona */}
+                              <div style={{ marginBottom: '16px' }}>
+                                <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                  👥 Target Persona
+                                </Text>
+                                <Text style={{ fontSize: '13px' }}>
+                                  <strong>Decision Makers:</strong> {analysis.decisionMakers || analysis.targetAudience}
+                                  {analysis.endUsers && analysis.endUsers !== (analysis.decisionMakers || analysis.targetAudience) && (
+                                    <>
+                                      <br />
+                                      <strong>End Users:</strong> {analysis.endUsers}
+                                    </>
+                                  )}
+                                </Text>
+                              </div>
+
+                              {/* Customer Problem */}
+                              <div style={{ marginBottom: '16px' }}>
+                                <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                  🔍 Customer Problem
+                                </Text>
+                                <Text style={{ fontSize: '13px' }}>
+                                  {topic.scenario.customerProblem}
+                                </Text>
+                              </div>
+
+                              {/* How They Search */}
+                              <div style={{ marginBottom: '16px' }}>
+                                <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                  💬 How They Search
+                                </Text>
+                                <Space wrap>
+                                  {topic.scenario.customerLanguage && topic.scenario.customerLanguage.map((term, termIndex) => (
+                                    <Tag 
+                                      key={termIndex}
+                                      color={analysis.brandColors.accent}
+                                      style={{ fontSize: '12px', borderRadius: '4px' }}
+                                    >
+                                      "{term}"
+                                    </Tag>
+                                  ))}
+                                </Space>
+                              </div>
+
+                              {/* SEO Keywords */}
+                              {topic.scenario.seoKeywords && topic.scenario.seoKeywords.length > 0 && (
+                                <div style={{ marginBottom: '16px' }}>
+                                  <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                    🔑 SEO Keywords
+                                  </Text>
+                                  <Space wrap>
+                                    {topic.scenario.seoKeywords.map((keyword, keywordIndex) => (
+                                      <Tag 
+                                        key={keywordIndex}
+                                        color={analysis.brandColors.primary}
+                                        style={{ fontSize: '12px', borderRadius: '4px' }}
+                                      >
+                                        {keyword}
+                                      </Tag>
+                                    ))}
+                                  </Space>
+                                </div>
+                              )}
+
+                              {/* Strategic Timing */}
+                              {analysis.searchBehavior && (
+                                <div style={{ marginBottom: '16px' }}>
+                                  <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                    🎯 Strategic Timing
+                                  </Text>
+                                  <Text style={{ fontSize: '13px' }}>
+                                    {analysis.searchBehavior}
+                                  </Text>
+                                </div>
+                              )}
+
+                              {/* Business Alignment */}
+                              {topic.scenario.conversionPath && (
+                                <div style={{ marginBottom: '16px' }}>
+                                  <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                    💼 Business Alignment
+                                  </Text>
+                                  <Text style={{ fontSize: '13px' }}>
+                                    {topic.scenario.conversionPath}
+                                  </Text>
+                                </div>
+                              )}
+
+                              {/* Strategic CTAs */}
+                              <div style={{ marginBottom: '16px' }}>
+                                <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                  🚀 Strategic CTAs
+                                </Text>
+                                <Text style={{ fontSize: '13px' }}>
+                                  {analysis.websiteGoals 
+                                    ? `Include CTAs driving toward: ${analysis.websiteGoals.toLowerCase()}`
+                                    : `Include CTAs that guide readers toward your primary conversion goals`
+                                  }
+                                </Text>
+                              </div>
+
+                              {/* Conversion Path */}
+                              {analysis.blogStrategy && (
+                                <div>
+                                  <Text strong style={{ color: analysis.brandColors.primary, fontSize: '14px', display: 'block', marginBottom: '6px' }}>
+                                    📈 Conversion Path
+                                  </Text>
+                                  <Text style={{ fontSize: '13px' }}>
+                                    {analysis.blogStrategy}
+                                  </Text>
+                                </div>
+                              )}
+                            </div>
+                          </Collapse.Panel>
+                        </Collapse>
+                      </Space>
                     </div>
                   </Card>
                 </Col>
