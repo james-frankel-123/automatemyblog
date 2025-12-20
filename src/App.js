@@ -1608,7 +1608,7 @@ ${post.content}
                     </div>
 
                     {/* Content Ideas */}
-                    <div>
+                    <div style={{ marginBottom: '20px' }}>
                       <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
                         <span style={{ marginRight: '8px' }}>💡</span>
                         Content Ideas
@@ -1632,6 +1632,22 @@ ${post.content}
                         </div>
                       ))}
                     </div>
+
+                    {/* How This Connects */}
+                    <div style={{ 
+                      padding: '16px',
+                      backgroundColor: analysis.brandColors.accent + '08', 
+                      borderRadius: '8px',
+                      border: `1px solid ${analysis.brandColors.accent}20`
+                    }}>
+                      <Title level={5} style={{ color: analysis.brandColors.accent, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ marginRight: '8px' }}>🚀</span>
+                        How This Connects
+                      </Title>
+                      <Text style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                        {analysis.connectionMessage || `${analysis.businessName || 'Your business'} understands when ${analysis.decisionMakers || analysis.targetAudience} are dealing with ${scenario.problem.toLowerCase()}. Through ${analysis.brandVoice.toLowerCase()} content that addresses this specific challenge, you become the trusted resource they turn to for guidance and solutions.`}
+                      </Text>
+                    </div>
                   </Card>
                 </Col>
               ))}
@@ -1639,22 +1655,6 @@ ${post.content}
           );
         })()}
 
-        {/* Overall Connection Message */}
-        <div style={{ 
-          marginTop: '32px',
-          padding: '20px', 
-          backgroundColor: analysis.brandColors.primary + '08', 
-          borderRadius: '8px',
-          border: `1px solid ${analysis.brandColors.primary}20`
-        }}>
-          <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
-            <span style={{ marginRight: '8px' }}>🚀</span>
-            How This Connects You with Customers
-          </Title>
-          <Text style={{ fontSize: '15px', lineHeight: '1.6' }}>
-            {analysis.connectionMessage || `Every search represents someone with a real problem looking for help. When ${analysis.decisionMakers || analysis.targetAudience} are struggling and turn to Google, your content becomes the trusted resource they find. Your ${analysis.brandVoice.toLowerCase()} approach builds confidence, and your expertise guides them toward ${analysis.contentFocus?.toLowerCase() || 'solutions'}. This is how traffic becomes trust, and trust becomes customers.`}
-          </Text>
-        </div>
       </Card>
     );
   };
