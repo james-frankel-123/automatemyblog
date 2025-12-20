@@ -1607,6 +1607,62 @@ ${post.content}
                       </Space>
                     </div>
 
+                    {/* SEO Keywords */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ marginRight: '8px' }}>🔑</span>
+                        SEO Keywords
+                      </Title>
+                      <Space wrap>
+                        {(() => {
+                          // Generate SEO keywords for this scenario
+                          let seoKeywords = [];
+                          
+                          if (analysis.keywords && analysis.keywords.length > 0) {
+                            // Distribute keywords across scenarios
+                            const keywordsPerScenario = Math.ceil(analysis.keywords.length / customerProblems.length);
+                            const startIdx = index * keywordsPerScenario;
+                            const endIdx = Math.min(startIdx + keywordsPerScenario, analysis.keywords.length);
+                            seoKeywords = analysis.keywords.slice(startIdx, endIdx);
+                          } else {
+                            // Generate fallback SEO keywords based on the problem and business type
+                            const businessType = analysis.businessType.toLowerCase();
+                            const problemKeywords = scenario.problem.toLowerCase().split(' ').slice(0, 3);
+                            
+                            if (businessType.includes('comfort') || businessType.includes('children')) {
+                              seoKeywords = [
+                                ...problemKeywords.map(word => `${word} children`),
+                                `${businessType} solutions`,
+                                'parenting tips',
+                                'child development'
+                              ].filter((keyword, idx, arr) => arr.indexOf(keyword) === idx).slice(0, 4);
+                            } else {
+                              seoKeywords = [
+                                ...problemKeywords,
+                                `${businessType} solutions`,
+                                `best ${businessType}`,
+                                `${businessType} guide`
+                              ].filter((keyword, idx, arr) => arr.indexOf(keyword) === idx).slice(0, 4);
+                            }
+                          }
+                          
+                          return seoKeywords.map((keyword, keywordIndex) => (
+                            <Tag 
+                              key={keywordIndex}
+                              color={analysis.brandColors.primary}
+                              style={{ 
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                padding: '4px 8px'
+                              }}
+                            >
+                              {keyword}
+                            </Tag>
+                          ));
+                        })()}
+                      </Space>
+                    </div>
+
                     {/* Content Ideas */}
                     <div style={{ marginBottom: '20px' }}>
                       <Title level={5} style={{ color: analysis.brandColors.primary, marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
