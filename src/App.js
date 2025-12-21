@@ -2466,10 +2466,13 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                   // Show topics with appropriate loading states - enhanced topics if available, or basic topics with loading indicators
                   const enhancedTopics = availableTopics.map((topic, index) => {
                     const scenarioData = analysis.scenarios && analysis.scenarios[index] ? analysis.scenarios[index] : null;
+                    const isWaitingForWebSearch = webSearchStillLoading && !scenarioData;
                     return {
                       ...topic,
                       scenario: scenarioData,
-                      webSearchLoading: webSearchStillLoading && !scenarioData
+                      webSearchLoading: isWaitingForWebSearch,
+                      isContentLoading: isWaitingForWebSearch || topic.isContentLoading, // Keep content loading until web search completes
+                      isImageLoading: isWaitingForWebSearch || topic.isImageLoading // Keep image loading until web search completes
                     };
                   });
 
