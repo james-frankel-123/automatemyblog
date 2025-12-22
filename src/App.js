@@ -4,6 +4,7 @@ import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlin
 import './styles/design-system.css';
 import './styles/mobile.css';
 import SEOHead from './components/SEOHead';
+import ChangesSummary from './components/ChangesSummary';
 import autoBlogAPI from './services/api';
 
 const { Title, Text, Paragraph } = Typography;
@@ -41,6 +42,10 @@ const App = () => {
   const [customFeedback, setCustomFeedback] = useState('');
   const [showStrategyGate, setShowStrategyGate] = useState(false);
   const [showExportWarning, setShowExportWarning] = useState(false);
+  
+  // Change tracking for regeneration
+  const [previousContent, setPreviousContent] = useState('');
+  const [showChanges, setShowChanges] = useState(false);
   
   // Customer strategy selection
   const [selectedCustomerStrategy, setSelectedCustomerStrategy] = useState(null);
@@ -965,27 +970,37 @@ ${post.content}
         return;
       }
 
+      // Store the current content as previous content before regenerating
+      setPreviousContent(generatedContent);
+      setShowChanges(false); // Hide changes initially
+
       // Combine custom feedback with strategy changes
       const additionalInstructions = customFeedback ? 
         `User feedback: ${customFeedback}\n\nContent Strategy: Goal: ${contentStrategy.goal}, Voice: ${contentStrategy.voice}, Template: ${contentStrategy.template}, Length: ${contentStrategy.length}` :
         `Content Strategy: Goal: ${contentStrategy.goal}, Voice: ${contentStrategy.voice}, Template: ${contentStrategy.template}, Length: ${contentStrategy.length}`;
 
-      const response = await autoBlogAPI.generateContent(
+      const blogPost = await autoBlogAPI.generateContent(
         selectedTopicData,
         stepResults.websiteAnalysis,
         additionalInstructions
       );
 
-      if (response.success) {
-        setGeneratedContent(response.blogPost.content);
+      if (blogPost && blogPost.content) {
+        setGeneratedContent(blogPost.content);
         setStepResults(prev => ({
           ...prev,
-          generatedBlogPost: response.blogPost,
-          finalContent: response.blogPost.content
+          generatedBlogPost: blogPost,
+          finalContent: blogPost.content
         }));
+        
+        // Show changes if there was previous content
+        if (generatedContent && generatedContent !== blogPost.content) {
+          setShowChanges(true);
+        }
+        
         message.success('Blog post regenerated successfully!');
       } else {
-        throw new Error(response.message || 'Failed to regenerate content');
+        throw new Error('Failed to regenerate content');
       }
     } catch (error) {
       console.error('Regeneration error:', error);
@@ -3295,6 +3310,15 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                   </Text>
                 </div>
               </div>
+            )}
+
+            {/* Changes Summary - show what changed after regeneration */}
+            {showChanges && previousContent && (
+              <ChangesSummary 
+                previousContent={previousContent}
+                newContent={generatedContent}
+                customFeedback={customFeedback}
+              />
             )}
 
             {previewMode ? (
