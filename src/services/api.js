@@ -147,6 +147,27 @@ class AutoBlogAPI {
   }
 
   /**
+   * Analyze changes between two versions of content
+   */
+  async analyzeChanges(previousContent, newContent, customFeedback = '') {
+    try {
+      const response = await this.makeRequest('/api/analyze-changes', {
+        method: 'POST',
+        body: JSON.stringify({
+          previousContent,
+          newContent,
+          customFeedback,
+        }),
+      });
+
+      return response.analysis;
+    } catch (error) {
+      console.error('Change analysis failed:', error);
+      throw new Error(`Failed to analyze changes: ${error.message}`);
+    }
+  }
+
+  /**
    * Test API connectivity
    */
   async healthCheck() {

@@ -1,164 +1,155 @@
-import React, { useState } from 'react';
-import { Card, Button, Typography, Space, Tag, Collapse, Alert } from 'antd';
-import { EyeOutlined, EyeInvisibleOutlined, DiffOutlined } from '@ant-design/icons';
-import * as Diff from 'diff';
+import React, { useState, useEffect } from 'react';
+import { Card, Typography, Space, Alert, Spin, List } from 'antd';
+import { BulbOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import autoBlogAPI from '../services/api';
 
-const { Title, Text, Paragraph } = Typography;
-const { Panel } = Collapse;
+const { Title, Text } = Typography;
 
 const ChangesSummary = ({ previousContent, newContent, customFeedback }) => {
-  const [showDetailedChanges, setShowDetailedChanges] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Generate text-based diff using the diff library
-  const generateDiff = () => {
-    if (!previousContent || !newContent) return [];
-    
-    // Split content into sentences for better diff granularity
-    const sentences = Diff.diffSentences(previousContent, newContent);
-    
-    return sentences.filter(part => part.added || part.removed);
-  };
+  useEffect(() => {
+    const analyzeChanges = async () => {
+      if (!previousContent || !newContent || previousContent === newContent) {
+        setLoading(false);
+        return;
+      }
 
-  // Generate a summary of changes
-  const generateChangeSummary = () => {
-    const diffParts = generateDiff();
-    const addedParts = diffParts.filter(part => part.added);
-    const removedParts = diffParts.filter(part => part.removed);
-    
-    return {
-      added: addedParts.length,
-      removed: removedParts.length,
-      totalChanges: diffParts.length
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('Analyzing content changes with AI...');
+        const result = await autoBlogAPI.analyzeChanges(
+          previousContent, 
+          newContent, 
+          customFeedback
+        );
+        
+        setAnalysis(result);
+      } catch (error) {
+        console.error('Failed to analyze changes:', error);
+        setError('Failed to analyze changes. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
-  };
 
-  // Render visual diff with highlighting
-  const renderVisualDiff = () => {
-    const diffParts = Diff.diffSentences(previousContent, newContent);
-    
-    return (
-      <div style={{ fontFamily: 'monospace', lineHeight: 1.6, maxHeight: '400px', overflow: 'auto' }}>
-        {diffParts.map((part, index) => {
-          let backgroundColor = 'transparent';
-          let color = 'inherit';
-          let textDecoration = 'none';
-          
-          if (part.added) {
-            backgroundColor = '#d4edda';
-            color = '#155724';
-          } else if (part.removed) {
-            backgroundColor = '#f8d7da';
-            color = '#721c24';
-            textDecoration = 'line-through';
-          }
-          
-          return (
-            <span
-              key={index}
-              style={{
-                backgroundColor,
-                color,
-                textDecoration,
-                padding: part.added || part.removed ? '2px 4px' : '0',
-                borderRadius: part.added || part.removed ? '3px' : '0',
-                margin: part.added || part.removed ? '0 1px' : '0'
-              }}
-            >
-              {part.value}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
+    analyzeChanges();
+  }, [previousContent, newContent, customFeedback]);
 
-  const summary = generateChangeSummary();
-  
+  // Don't render if no content to compare
   if (!previousContent || !newContent || previousContent === newContent) {
     return null;
+  }
+
+  // Don't render if there was an error
+  if (error) {
+    return (
+      <Alert
+        message="Unable to analyze changes"
+        description={error}
+        type="warning"
+        showIcon
+        style={{ marginBottom: '16px' }}
+      />
+    );
   }
 
   return (
     <Card 
       style={{ 
         marginBottom: '16px', 
-        border: '1px solid #1890ff',
-        borderRadius: '8px'
+        border: '1px solid #52c41a',
+        borderRadius: '8px',
+        backgroundColor: '#f6ffed'
       }}
       size="small"
     >
       <Space direction="vertical" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Title level={5} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
-            <DiffOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-            Content Changes Applied
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <CheckCircleOutlined style={{ marginRight: '8px', color: '#52c41a', fontSize: '16px' }} />
+          <Title level={5} style={{ margin: 0, color: '#52c41a' }}>
+            What Changed
           </Title>
-          <Button
-            size="small"
-            icon={showDetailedChanges ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-            onClick={() => setShowDetailedChanges(!showDetailedChanges)}
-          >
-            {showDetailedChanges ? 'Hide Details' : 'Show Details'}
-          </Button>
         </div>
 
-        {customFeedback && (
-          <Alert
-            message="Your Feedback Applied"
-            description={customFeedback}
-            type="info"
-            showIcon
-            style={{ fontSize: '12px' }}
-          />
-        )}
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {summary.added > 0 && (
-            <Tag color="green">
-              +{summary.added} sections added
-            </Tag>
-          )}
-          {summary.removed > 0 && (
-            <Tag color="red">
-              -{summary.removed} sections removed
-            </Tag>
-          )}
-          {summary.totalChanges === 0 && (
-            <Tag color="blue">
-              Content restructured
-            </Tag>
-          )}
-        </div>
-
-        {showDetailedChanges && (
-          <Collapse ghost>
-            <Panel header="Detailed Changes" key="1">
-              <div style={{ 
-                backgroundColor: '#fafafa', 
-                padding: '12px', 
-                borderRadius: '6px',
-                border: '1px solid #d9d9d9'
-              }}>
-                <Text style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '8px' }}>
-                  <span style={{ color: '#d4edda', backgroundColor: '#155724', padding: '2px 4px', borderRadius: '3px', marginRight: '8px' }}>
-                    Green
-                  </span>
-                  = Added content
-                  <span style={{ color: '#f8d7da', backgroundColor: '#721c24', padding: '2px 4px', borderRadius: '3px', margin: '0 8px' }}>
-                    Red
-                  </span>
-                  = Removed content
-                </Text>
-                {renderVisualDiff()}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <Spin />
+            <div style={{ marginTop: '8px' }}>
+              <Text style={{ color: '#666' }}>Analyzing changes with AI...</Text>
+            </div>
+          </div>
+        ) : analysis ? (
+          <Space direction="vertical" style={{ width: '100%' }}>
+            {/* Overall Summary */}
+            <div>
+              <Text strong style={{ fontSize: '14px', color: '#389e0d' }}>
+                Summary:
+              </Text>
+              <div style={{ marginTop: '4px' }}>
+                <Text style={{ fontSize: '14px' }}>{analysis.summary}</Text>
               </div>
-            </Panel>
-          </Collapse>
-        )}
+            </div>
 
-        <Text style={{ fontSize: '12px', color: '#666' }}>
-          The content has been updated based on your feedback. 
-          {summary.totalChanges > 0 && ` ${summary.totalChanges} changes were made.`}
-        </Text>
+            {/* Key Changes */}
+            {analysis.keyChanges && analysis.keyChanges.length > 0 && (
+              <div>
+                <Text strong style={{ fontSize: '14px', color: '#389e0d' }}>
+                  Key Changes:
+                </Text>
+                <List
+                  size="small"
+                  dataSource={analysis.keyChanges}
+                  renderItem={(item, index) => (
+                    <List.Item style={{ padding: '8px 0', borderBottom: 'none' }}>
+                      <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                          <BulbOutlined style={{ 
+                            marginRight: '8px', 
+                            marginTop: '2px',
+                            color: '#1890ff',
+                            fontSize: '14px'
+                          }} />
+                          <div style={{ flex: 1 }}>
+                            <Text strong style={{ fontSize: '14px' }}>
+                              {item.change}
+                            </Text>
+                            {item.impact && (
+                              <div style={{ marginTop: '2px' }}>
+                                <Text style={{ fontSize: '13px', color: '#666' }}>
+                                  {item.impact}
+                                </Text>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </List.Item>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Feedback Applied */}
+            {customFeedback && analysis.feedbackApplied && (
+              <Alert
+                message="Your Feedback Applied"
+                description={analysis.feedbackApplied}
+                type="info"
+                showIcon
+                style={{ fontSize: '12px' }}
+              />
+            )}
+          </Space>
+        ) : (
+          <Text style={{ fontSize: '14px', color: '#666' }}>
+            No significant changes detected.
+          </Text>
+        )}
       </Space>
     </Card>
   );
