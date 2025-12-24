@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Row, Col, Typography, Radio, Spin, Progress, Input, message, Space, Tag, Form, Select, Slider, ColorPicker, Modal, Divider, Steps, Collapse } from 'antd';
-import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlined, GlobalOutlined, ScanOutlined, EyeOutlined, SettingOutlined, ApiOutlined, CloudUploadOutlined, CodeOutlined, DownOutlined, CloudDownloadOutlined, FileMarkdownOutlined, FileTextOutlined, DatabaseOutlined, FileZipOutlined, LockOutlined } from '@ant-design/icons';
+import { SearchOutlined, BulbOutlined, EditOutlined, CheckOutlined, ReloadOutlined, GlobalOutlined, ScanOutlined, EyeOutlined, SettingOutlined, ApiOutlined, CloudUploadOutlined, CodeOutlined, DownOutlined, CloudDownloadOutlined, FileMarkdownOutlined, FileTextOutlined, DatabaseOutlined, FileZipOutlined, LockOutlined, LoginOutlined, UserAddOutlined } from '@ant-design/icons';
 import './styles/design-system.css';
 import './styles/mobile.css';
 import SEOHead from './components/SEOHead';
 import ChangesSummary from './components/ChangesSummary';
 import autoBlogAPI from './services/api';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AuthModal from './components/Auth/AuthModal';
+import DashboardLayout from './components/Dashboard/DashboardLayout';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-const App = () => {
+const AppContent = () => {
+  const { user, loading } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [generatedContent, setGeneratedContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,12 +26,6 @@ const App = () => {
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedCMS, setSelectedCMS] = useState(null);
   const [expandedSteps, setExpandedSteps] = useState([]);
-  const [userEmail, setUserEmail] = useState('');
-  const [userAccount, setUserAccount] = useState(null);
-  const [showEmailGate, setShowEmailGate] = useState(false);
-  const [showSignupGate, setShowSignupGate] = useState(false);
-  const [emailForm] = Form.useForm();
-  const [signupForm] = Form.useForm();
   const [analysisCompleted, setAnalysisCompleted] = useState(false);
   const [strategyCompleted, setStrategyCompleted] = useState(false);
   const [blogGenerating, setBlogGenerating] = useState(false);
@@ -49,7 +48,6 @@ const App = () => {
   
   // Customer strategy selection
   const [selectedCustomerStrategy, setSelectedCustomerStrategy] = useState(null);
-  const [showMoreStrategiesGate, setShowMoreStrategiesGate] = useState(false);
   const [strategySelectionCompleted, setStrategySelectionCompleted] = useState(false);
   
   // Web search research insights
@@ -109,6 +107,15 @@ const App = () => {
     { title: 'Creating Content', icon: <EditOutlined />, description: 'AI is writing your personalized blog post', requiresLogin: true },
     { title: 'Editing Content', icon: <EyeOutlined />, description: 'Review and customize your blog post', requiresLogin: true }
   ];
+
+  // Unified auth gate helper function
+  const requireAuth = (action) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  };
 
   const cmsOptions = [
     { 
@@ -173,13 +180,7 @@ const App = () => {
 
   // Removed automatic step progression - user should manually select topics and proceed
 
-  // Check for gating at key points
-  useEffect(() => {
-    // Signup gate at step 4+ (Edit Content) - now requires account instead of just email
-    if (currentStep >= 4 && !userAccount && !showSignupGate) {
-      setShowSignupGate(true);
-    }
-  }, [currentStep, userAccount]);
+  // Auth is now handled at the button level with requireAuth()
 
   // Simulate website scanning with progressive messages
   useEffect(() => {
@@ -540,8 +541,7 @@ const App = () => {
     }
     
     // Check if user needs to sign up for step 7+
-    if (!userAccount) {
-      setShowSignupGate(true);
+    if (!demoMode && !requireAuth()) {
       return;
     }
     
@@ -823,10 +823,6 @@ ${post.content}
     setPreviewMode(false);
     setSelectedCMS(null);
     setExpandedSteps([]);
-    setUserEmail('');
-    setUserAccount(null);
-    setShowEmailGate(false);
-    setShowSignupGate(false);
     
     // Reset new state variables
     setPostState('draft');
@@ -841,7 +837,6 @@ ${post.content}
     
     // Reset customer strategy selection
     setSelectedCustomerStrategy(null);
-    setShowMoreStrategiesGate(false);
     setStrategySelectionCompleted(false);
     setStepResults({
       websiteAnalysis: {
@@ -863,41 +858,7 @@ ${post.content}
     });
   };
 
-  const handleEmailSubmit = (values) => {
-    setUserEmail(values.email);
-    setShowEmailGate(false);
-    message.success('Email captured! Unlocking your content strategy...');
-    
-    // Continue to the gated step
-    if (currentStep < 4) setCurrentStep(4);
-  };
-
-  const handleSignupSubmit = (values) => {
-    setUserAccount({
-      email: values.email,
-      name: values.name,
-      company: values.company
-    });
-    setShowSignupGate(false);
-    message.success('Account created! You can now edit and publish your content.');
-    
-    // Continue to the gated step  
-    if (currentStep < 7) setCurrentStep(7);
-  };
-
-  const skipForDemo = () => {
-    if (showEmailGate) {
-      setUserEmail('demo@example.com');
-      setShowEmailGate(false);
-      message.info('Demo mode: Email requirement skipped');
-    }
-    
-    if (showSignupGate) {
-      setUserAccount({ email: 'demo@example.com', name: 'Demo User' });
-      setShowSignupGate(false);
-      message.info('Demo mode: Signup requirement skipped');
-    }
-  };
+  // Legacy auth functions removed - now using unified AuthContext
 
   const progressPercent = Math.round(((currentStep + 1) / 6) * 100);
 
@@ -938,8 +899,7 @@ ${post.content}
       return;
     }
 
-    if (!demoMode && !userAccount) {
-      setShowStrategyGate(true);
+    if (!demoMode && !requireAuth()) {
       return;
     }
 
@@ -955,8 +915,7 @@ ${post.content}
       return;
     }
 
-    if (!demoMode && !userAccount) {
-      setShowStrategyGate(true);
+    if (!demoMode && !requireAuth()) {
       return;
     }
 
@@ -1808,6 +1767,11 @@ app.post('/api/autoblog-webhook', async (req, res) => {
     return codeExamples[cmsId] || '// Integration code will be generated based on your selection';
   };
 
+  // Show dashboard if user is logged in
+  if (user) {
+    return <DashboardLayout />;
+  }
+
   return (
     <div style={{ 
       padding: window.innerWidth <= 767 ? '10px' : '20px', 
@@ -1820,6 +1784,28 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         keywords="AI blog generation, automated content creation, AI writing, content marketing, blog automation, trending topics, content strategy"
         canonicalUrl="/"
       />
+
+      {/* Authentication Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        marginBottom: '20px',
+        gap: '12px'
+      }}>
+        <Button 
+          icon={<LoginOutlined />}
+          onClick={() => setShowAuthModal(true)}
+        >
+          Login
+        </Button>
+        <Button 
+          type="primary"
+          icon={<UserAddOutlined />}
+          onClick={() => setShowAuthModal(true)}
+        >
+          Sign Up
+        </Button>
+      </div>
 
       {/* Demo Mode Banner */}
       {demoMode && (
@@ -1947,7 +1933,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
               current={currentStep}
               size="small"
               items={steps.map((step, index) => {
-                const isLocked = step.requiresLogin && !userAccount;
+                const isLocked = step.requiresLogin && !user;
                 
                 return {
                   title: (
@@ -2301,7 +2287,9 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                                 message.info('Demo mode: Showing all strategies');
                                 // In demo mode, show all strategies
                               } else {
-                                setShowMoreStrategiesGate(true);
+                                if (requireAuth()) {
+                                  message.info('More strategies will be available after backend integration');
+                                }
                               }
                             }}
                             style={{
@@ -2758,12 +2746,20 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                                     
                                     <Button
                                       size="large"
-                                      onClick={() => setShowMoreStrategiesGate(true)}
+                                      icon={<LockOutlined />}
+                                      onClick={() => {
+                                        if (requireAuth()) {
+                                          // TODO: Implement strategy editing functionality
+                                          message.info('Strategy editing will be available after backend integration');
+                                        }
+                                      }}
                                       style={{
                                         width: '100%',
                                         marginTop: '8px',
                                         borderColor: analysis.brandColors.primary,
-                                        color: analysis.brandColors.primary
+                                        color: analysis.brandColors.primary,
+                                        background: `linear-gradient(135deg, ${analysis.brandColors.primary}05, ${analysis.brandColors.primary}10)`,
+                                        fontWeight: '500'
                                       }}
                                     >
                                       Edit Strategy
@@ -2913,17 +2909,24 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                           </Text>
                           <Button 
                             size="large"
+                            type="primary"
                             style={{
                               backgroundColor: analysis.brandColors.accent,
                               borderColor: analysis.brandColors.accent,
                               color: 'white',
                               borderRadius: '8px',
-                              fontWeight: 600,
+                              fontWeight: '500',
                               height: '48px',
                               padding: '0 32px',
-                              fontSize: '16px'
+                              fontSize: '16px',
+                              boxShadow: `0 2px 8px ${analysis.brandColors.accent}30`
                             }}
-                            onClick={() => setShowSignupGate(true)}
+                            onClick={() => {
+                              if (requireAuth()) {
+                                // TODO: Implement more ideas functionality
+                                message.info('More content ideas will be available after backend integration');
+                              }
+                            }}
                             icon={<LockOutlined />}
                           >
                             See More Ideas
@@ -3038,7 +3041,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
             </Space>
           </div>
 
-          {!userAccount && (
+          {!user && (
             <div style={{ 
               textAlign: 'center', 
               marginBottom: '20px', 
@@ -3065,7 +3068,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                 type="primary" 
                 size="large"
                 style={{ marginTop: '8px' }}
-                onClick={() => setShowSignupGate(true)}
+                onClick={() => setShowAuthModal(true)}
               >
                 Create Free Account
               </Button>
@@ -3268,13 +3271,16 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                           <Button
                             type="primary"
                             size="large"
+                            icon={!isLoading && !blogGenerating ? <LockOutlined /> : undefined}
                             loading={isLoading || blogGenerating}
                             onClick={regenerateWithFeedback}
                             disabled={postState === 'exported'}
                             style={{
                               backgroundColor: stepResults.websiteAnalysis.brandColors.primary,
                               borderColor: stepResults.websiteAnalysis.brandColors.primary,
-                              minWidth: '150px'
+                              minWidth: '150px',
+                              fontWeight: '500',
+                              boxShadow: `0 2px 8px ${stepResults.websiteAnalysis.brandColors.primary}30`
                             }}
                           >
                             {isLoading || blogGenerating ? 'Regenerating...' : 'Regenerate'}
@@ -3344,10 +3350,14 @@ app.post('/api/autoblog-webhook', async (req, res) => {
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <Button 
                 type="primary" 
-                size="large" 
+                size="large"
+                icon={postState !== 'exported' ? <LockOutlined /> : undefined}
                 onClick={() => {
                   if (postState === 'exported') {
                     message.warning('This post has already been exported and is locked.');
+                    return;
+                  }
+                  if (!demoMode && !requireAuth()) {
                     return;
                   }
                   setShowExportWarning(true);
@@ -3355,7 +3365,9 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                 disabled={postState === 'exported'}
                 style={{ 
                   backgroundColor: stepResults.websiteAnalysis.brandColors.primary, 
-                  borderColor: stepResults.websiteAnalysis.brandColors.primary 
+                  borderColor: stepResults.websiteAnalysis.brandColors.primary,
+                  fontWeight: '500',
+                  boxShadow: `0 2px 8px ${stepResults.websiteAnalysis.brandColors.primary}30`
                 }}
               >
                 {postState === 'exported' ? 'Post Exported & Locked' : 'Download Your Content'}
@@ -3631,149 +3643,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
       </Modal>
 
 
-      {/* Email Gate Modal */}
-      <Modal
-        title="Unlock Your Content Strategy"
-        open={showEmailGate}
-        onCancel={() => setShowEmailGate(false)}
-        footer={null}
-        width={500}
-        centered
-      >
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <BulbOutlined style={{ fontSize: '48px', color: '#6B8CAE', marginBottom: '16px' }} />
-          <Title level={3}>See Your Custom Content Ideas</Title>
-          <Paragraph>
-            Get personalized content strategies and your first AI-generated blog post free.
-          </Paragraph>
-          <div style={{ backgroundColor: '#f6f8fa', padding: '16px', borderRadius: '8px', margin: '16px 0' }}>
-            <Text strong>What you'll unlock:</Text>
-            <ul style={{ textAlign: 'left', marginTop: '8px', marginBottom: '0' }}>
-              <li>Custom content ideas for your business</li>
-              <li>AI-generated blog post with your brand voice</li>
-              <li>Visual themes and image suggestions</li>
-              <li>CMS integration setup guide</li>
-            </ul>
-          </div>
-        </div>
-        
-        <Form form={emailForm} onFinish={handleEmailSubmit} layout="vertical">
-          <Form.Item
-            name="email"
-            label="Email Address"
-            rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' }
-            ]}
-          >
-            <Input 
-              placeholder="Enter your email address" 
-              size="large"
-              prefix={<GlobalOutlined />}
-            />
-          </Form.Item>
-          
-          <Form.Item>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              size="large" 
-              block
-              style={{ marginBottom: '12px' }}
-            >
-              Get My Content Strategy Free
-            </Button>
-            <Button 
-              type="text" 
-              onClick={skipForDemo}
-              block
-              style={{ color: '#8c8c8c' }}
-            >
-              Skip for Demo (Development Only)
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
 
-      {/* Signup Gate Modal */}
-      <Modal
-        title="Unlock All Content Ideas"
-        open={showSignupGate}
-        onCancel={() => setShowSignupGate(false)}
-        footer={null}
-        width={500}
-        centered
-      >
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <BulbOutlined style={{ fontSize: '48px', color: '#6B8CAE', marginBottom: '16px' }} />
-          <Title level={3}>Get Your Complete Content Strategy</Title>
-          <Paragraph>
-            Create a free account to unlock <Text strong>all content ideas</Text> with detailed customer psychology insights and strategic guidance.
-          </Paragraph>
-          <div style={{ backgroundColor: '#f0f8ff', padding: '16px', borderRadius: '8px', margin: '16px 0', border: '1px solid #d6e7ff' }}>
-            <Text strong style={{ color: '#1890ff' }}>🎉 What you'll get with your free account:</Text>
-            <ul style={{ textAlign: 'left', marginTop: '8px', marginBottom: '0' }}>
-              <li>All content topics with customer psychology analysis</li>
-              <li>Complete strategic breakdown for each topic</li>
-              <li>Generate unlimited blog posts</li>
-              <li>Full editing and customization tools</li>
-              <li>Multiple download formats (HTML, Markdown, etc.)</li>
-            </ul>
-          </div>
-        </div>
-        
-        <Form form={signupForm} onFinish={handleSignupSubmit} layout="vertical">
-          <Form.Item
-            name="name"
-            label="Full Name"
-            rules={[{ required: true, message: 'Please enter your name' }]}
-          >
-            <Input placeholder="Enter your full name" size="large" />
-          </Form.Item>
-          
-          <Form.Item
-            name="email"
-            label="Email Address"
-            rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' }
-            ]}
-          >
-            <Input 
-              placeholder="Enter your email address" 
-              size="large"
-              prefix={<GlobalOutlined />}
-            />
-          </Form.Item>
-          
-          <Form.Item
-            name="company"
-            label="Company (Optional)"
-          >
-            <Input placeholder="Enter your company name" size="large" />
-          </Form.Item>
-          
-          <Form.Item>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              size="large" 
-              block
-              style={{ marginBottom: '12px' }}
-            >
-              Unlock All Content Ideas
-            </Button>
-            <Button 
-              type="text" 
-              onClick={skipForDemo}
-              block
-              style={{ color: '#8c8c8c' }}
-            >
-              Skip for Demo (Development Only)
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
 
       {/* Export Warning Modal */}
       <Modal
@@ -3852,111 +3722,6 @@ app.post('/api/autoblog-webhook', async (req, res) => {
         </Row>
       </Modal>
 
-      {/* See More Strategies Gate Modal */}
-      <Modal
-        title="🎯 Unlock All Customer Strategies"
-        open={showMoreStrategiesGate}
-        onCancel={() => setShowMoreStrategiesGate(false)}
-        footer={null}
-        width={600}
-        centered
-      >
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ 
-            backgroundColor: '#fff7e6', 
-            padding: '20px', 
-            borderRadius: '12px', 
-            margin: '16px 0', 
-            border: '1px solid #ffd591' 
-          }}>
-            <Text strong style={{ color: '#fa8c16', fontSize: '16px' }}>
-              💡 Unlock {(stepResults.websiteAnalysis.scenarios?.length || 5) - 2} More Targeted Strategies
-            </Text>
-            <div style={{ marginTop: '12px', textAlign: 'left' }}>
-              <Text style={{ fontSize: '14px' }}>
-                Access all customer psychology insights and target multiple audience segments
-                with strategic content that converts.
-              </Text>
-            </div>
-          </div>
-          
-          <Title level={3} style={{ marginBottom: '8px' }}>
-            Strategic Customer Targeting
-          </Title>
-          <Paragraph>
-            Get access to all customer strategies, each with detailed psychology insights,
-            search behavior analysis, and conversion optimization.
-          </Paragraph>
-          
-          <div style={{ backgroundColor: '#f0f8ff', padding: '16px', borderRadius: '8px', margin: '16px 0', border: '1px solid #d6e7ff' }}>
-            <Text strong style={{ color: '#1890ff' }}>✨ With All Customer Strategies:</Text>
-            <ul style={{ textAlign: 'left', marginTop: '8px', marginBottom: '0' }}>
-              <li><strong>Multiple Target Audiences:</strong> Access all customer segments from your analysis</li>
-              <li><strong>Detailed Psychology Insights:</strong> Problems, search patterns, emotional triggers</li>
-              <li><strong>A/B Testing Opportunities:</strong> Compare different audience strategies</li>
-              <li><strong>Conversion Optimization:</strong> Strategic content aligned with business goals</li>
-              <li><strong>Competitive Advantage:</strong> Target untapped customer segments</li>
-            </ul>
-          </div>
-        </div>
-        
-        <Row gutter={16}>
-          <Col span={12}>
-            <Button 
-              type="primary" 
-              size="large" 
-              block
-              style={{ 
-                backgroundColor: '#52c41a',
-                borderColor: '#52c41a',
-                marginBottom: '12px'
-              }}
-              onClick={() => {
-                setShowMoreStrategiesGate(false);
-                message.success('All strategies unlocked! (Demo simulation)');
-                // In real implementation, this would trigger payment flow
-              }}
-            >
-              Start 7-Day Free Trial
-            </Button>
-            <Text style={{ fontSize: '12px', color: '#666', display: 'block', textAlign: 'center' }}>
-              Then $15/month • Cancel anytime
-            </Text>
-          </Col>
-          <Col span={12}>
-            <Button 
-              size="large" 
-              block
-              style={{ marginBottom: '12px' }}
-              onClick={() => {
-                setShowMoreStrategiesGate(false);
-                message.success('All strategies unlocked! (Demo simulation)');
-                // In real implementation, this would trigger payment flow
-              }}
-            >
-              Subscribe Now - $15/month
-            </Button>
-            <Text style={{ fontSize: '12px', color: '#666', display: 'block', textAlign: 'center' }}>
-              Full access immediately
-            </Text>
-          </Col>
-        </Row>
-        
-        {demoMode && (
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <Button 
-              type="text" 
-              onClick={() => {
-                setShowMoreStrategiesGate(false);
-                message.info('Demo mode: All strategies unlocked');
-              }}
-              style={{ color: '#ff4500', fontWeight: 'bold' }}
-            >
-              🔧 Demo Mode - Skip Payment
-            </Button>
-          </div>
-        )}
-      </Modal>
 
       {/* Content Strategy Customization Gate Modal */}
       <Modal
@@ -4070,7 +3835,22 @@ app.post('/api/autoblog-webhook', async (req, res) => {
           </div>
         )}
       </Modal>
+
+      {/* Authentication Modal */}
+      <AuthModal 
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
+  );
+};
+
+// Main App wrapper with AuthProvider
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

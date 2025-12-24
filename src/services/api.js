@@ -18,6 +18,12 @@ class AutoBlogAPI {
       },
     };
 
+    // Add auth token if available
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      defaultOptions.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     // Add timeout with fallback for older browsers (60s for DALL-E generation)
     const timeoutSignal = typeof AbortSignal.timeout === 'function' 
       ? AbortSignal.timeout(60000) 
@@ -46,10 +52,6 @@ class AutoBlogAPI {
         return response;
       }
     } catch (error) {
-      console.error('API request failed:', error);
-      console.error('Request URL:', url);
-      console.error('Request options:', requestOptions);
-      
       if (error.name === 'AbortError') {
         throw new Error('Request timed out. Please try again.');
       }
@@ -63,9 +65,6 @@ class AutoBlogAPI {
    */
   async analyzeWebsite(url) {
     try {
-      console.log('Analyzing website:', url);
-      console.log('Backend URL:', this.baseURL);
-      
       const response = await this.makeRequest('/api/analyze-website', {
         method: 'POST',
         body: JSON.stringify({ url }),
@@ -73,7 +72,6 @@ class AutoBlogAPI {
 
       return response;
     } catch (error) {
-      console.error('Website analysis failed:', error);
       throw new Error(`Failed to analyze website: ${error.message}`);
     }
   }
@@ -94,7 +92,6 @@ class AutoBlogAPI {
 
       return response.topics || [];
     } catch (error) {
-      console.error('Trending topics generation failed:', error);
       throw new Error(`Failed to generate trending topics: ${error.message}`);
     }
   }
@@ -115,7 +112,6 @@ class AutoBlogAPI {
 
       return response.blogPost;
     } catch (error) {
-      console.error('Content generation failed:', error);
       throw new Error(`Failed to generate content: ${error.message}`);
     }
   }
@@ -141,7 +137,6 @@ class AutoBlogAPI {
 
       return response;
     } catch (error) {
-      console.error('Export failed:', error);
       throw new Error(`Failed to export content: ${error.message}`);
     }
   }
@@ -162,7 +157,6 @@ class AutoBlogAPI {
 
       return response.analysis;
     } catch (error) {
-      console.error('Change analysis failed:', error);
       throw new Error(`Failed to analyze changes: ${error.message}`);
     }
   }
@@ -175,7 +169,6 @@ class AutoBlogAPI {
       const response = await this.makeRequest('/health');
       return response;
     } catch (error) {
-      console.error('Health check failed:', error);
       return { status: 'error', message: error.message };
     }
   }
@@ -188,8 +181,67 @@ class AutoBlogAPI {
       const response = await this.makeRequest('/api');
       return response;
     } catch (error) {
-      console.error('API info request failed:', error);
       throw new Error(`Failed to get API info: ${error.message}`);
+    }
+  }
+
+  /**
+   * User authentication methods
+   */
+  async login(email, password) {
+    try {
+      const response = await this.makeRequest('/api/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(`Login failed: ${error.message}`);
+    }
+  }
+
+  async register(userData) {
+    try {
+      const response = await this.makeRequest('/api/v1/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(`Registration failed: ${error.message}`);
+    }
+  }
+
+  async me() {
+    try {
+      const response = await this.makeRequest('/api/v1/auth/me');
+      return response;
+    } catch (error) {
+      throw new Error(`Failed to get user info: ${error.message}`);
+    }
+  }
+
+  async refreshToken() {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      const response = await this.makeRequest('/api/v1/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
+      return response;
+    } catch (error) {
+      throw new Error(`Token refresh failed: ${error.message}`);
+    }
+  }
+
+  async logout() {
+    try {
+      await this.makeRequest('/api/v1/auth/logout', {
+        method: 'POST',
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message };
     }
   }
 }

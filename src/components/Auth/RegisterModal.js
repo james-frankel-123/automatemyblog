@@ -1,0 +1,190 @@
+import React, { useState } from 'react';
+import { Form, Input, Button, Alert, Space } from 'antd';
+import { UserOutlined, LockOutlined, MailOutlined, BankOutlined } from '@ant-design/icons';
+import { useAuth } from '../../contexts/AuthContext';
+
+const RegisterModal = ({ onClose, onSwitchToLogin }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const { register } = useAuth();
+
+  const onFinish = async (values) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      await register({
+        email: values.email,
+        password: values.password,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        organizationName: values.organizationName,
+      });
+      setSuccess(true);
+    } catch (error) {
+      setError(error.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <Alert
+          message="Account Created Successfully!"
+          description="Please check your email for verification instructions."
+          type="success"
+          style={{ marginBottom: '20px' }}
+        />
+        <Button type="primary" onClick={onSwitchToLogin}>
+          Sign In Now
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: '20px 0' }}>
+      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <h2>Create Your Free Account</h2>
+        <p style={{ color: '#666', margin: '0 0 16px 0' }}>
+          Unlock all premium features instantly
+        </p>
+        
+        <div style={{ 
+          backgroundColor: '#f6ffed', 
+          padding: '12px', 
+          borderRadius: '6px', 
+          border: '1px solid #b7eb8f',
+          textAlign: 'left'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: '#52c41a', fontSize: '14px' }}>
+            ✨ What you get with your account:
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#666' }}>
+            <li>Access to all customer targeting strategies</li>
+            <li>Unlimited content generation and regeneration</li>
+            <li>Advanced content editing and customization</li>
+            <li>Multiple export formats (HTML, Markdown, etc.)</li>
+            <li>Save and manage all your blog posts</li>
+          </ul>
+        </div>
+      </div>
+
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          style={{ marginBottom: '20px' }}
+        />
+      )}
+
+      <Form
+        name="register"
+        onFinish={onFinish}
+        autoComplete="off"
+        layout="vertical"
+      >
+        <Space.Compact style={{ width: '100%' }}>
+          <Form.Item
+            name="firstName"
+            style={{ width: '50%', marginBottom: '16px' }}
+            rules={[{ required: true, message: 'First name required' }]}
+          >
+            <Input
+              placeholder="First name"
+              size="large"
+            />
+          </Form.Item>
+          <Form.Item
+            name="lastName"
+            style={{ width: '50%', marginBottom: '16px' }}
+            rules={[{ required: true, message: 'Last name required' }]}
+          >
+            <Input
+              placeholder="Last name"
+              size="large"
+            />
+          </Form.Item>
+        </Space.Compact>
+
+        <Form.Item
+          name="email"
+          rules={[
+            { required: true, message: 'Please enter your email' },
+            { type: 'email', message: 'Please enter a valid email' },
+          ]}
+        >
+          <Input
+            prefix={<MailOutlined />}
+            placeholder="Email address"
+            size="large"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="organizationName"
+          rules={[{ required: true, message: 'Organization name required' }]}
+        >
+          <Input
+            prefix={<BankOutlined />}
+            placeholder="Organization name"
+            size="large"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="password"
+          rules={[
+            { required: true, message: 'Please enter your password' },
+            { min: 8, message: 'Password must be at least 8 characters' },
+          ]}
+        >
+          <Input.Password
+            prefix={<LockOutlined />}
+            placeholder="Password"
+            size="large"
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="confirmPassword"
+          dependencies={['password']}
+          rules={[
+            { required: true, message: 'Please confirm your password' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error('Passwords do not match'));
+              },
+            }),
+          ]}
+        >
+          <Input.Password
+            prefix={<LockOutlined />}
+            placeholder="Confirm password"
+            size="large"
+          />
+        </Form.Item>
+
+        <Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            size="large"
+            style={{ width: '100%' }}
+          >
+            Create Account
+          </Button>
+        </Form.Item>
+      </Form>
+    </div>
+  );
+};
+
+export default RegisterModal;
