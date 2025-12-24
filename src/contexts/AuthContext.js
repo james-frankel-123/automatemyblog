@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentOrganization, setCurrentOrganization] = useState(null);
+  const [loginContext, setLoginContext] = useState(null); // 'gate' or 'nav'
 
   useEffect(() => {
     checkAuthStatus();
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (email, password, context = null) => {
     const response = await autoBlogAPI.login(email, password);
     localStorage.setItem('accessToken', response.accessToken);
     localStorage.setItem('refreshToken', response.refreshToken);
@@ -46,12 +47,27 @@ export const AuthProvider = ({ children }) => {
     if (response.user.organizations?.length > 0) {
       setCurrentOrganization(response.user.organizations[0]);
     }
-    return response;
+    
+    // Store login context for routing decisions
+    setLoginContext(context);
+    
+    return { ...response, context };
   };
 
-  const register = async (userData) => {
+  const register = async (userData, context = null) => {
     const response = await autoBlogAPI.register(userData);
-    return response;
+    
+    // If registration includes auto-login, handle context
+    if (response.user) {
+      setUser(response.user);
+      if (response.accessToken) {
+        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
+      setLoginContext(context);
+    }
+    
+    return { ...response, context };
   };
 
   const logout = () => {
@@ -59,6 +75,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('refreshToken');
     setUser(null);
     setCurrentOrganization(null);
+    setLoginContext(null);
+  };
+
+  const clearLoginContext = () => {
+    setLoginContext(null);
+  };
+
+  const setNavContext = () => {
+    setLoginContext('nav');
   };
 
   const value = {
@@ -69,6 +94,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     loading,
     isAuthenticated: !!user,
+    loginContext,
+    clearLoginContext,
+    setNavContext,
   };
 
   return (

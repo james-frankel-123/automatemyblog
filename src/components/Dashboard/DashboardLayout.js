@@ -8,8 +8,10 @@ import {
   SettingOutlined,
   UserOutlined,
   LogoutOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
+import NewPostTab from './NewPostTab';
 import OverviewTab from './OverviewTab';
 import PostsTab from './PostsTab';
 import ProjectsTab from './ProjectsTab';
@@ -19,11 +21,16 @@ import SettingsTab from './SettingsTab';
 const { Header, Sider, Content } = Layout;
 
 const DashboardLayout = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('newpost');
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout } = useAuth();
 
   const menuItems = [
+    {
+      key: 'newpost',
+      icon: <EditOutlined />,
+      label: 'New Post',
+    },
     {
       key: 'overview',
       icon: <DashboardOutlined />,
@@ -70,6 +77,8 @@ const DashboardLayout = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'newpost':
+        return <NewPostTab />;
       case 'overview':
         return <OverviewTab />;
       case 'posts':
@@ -81,7 +90,7 @@ const DashboardLayout = () => {
       case 'settings':
         return <SettingsTab />;
       default:
-        return <OverviewTab />;
+        return <NewPostTab />;
     }
   };
 

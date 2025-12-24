@@ -3,7 +3,7 @@ import { Form, Input, Button, Alert, Space } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, BankOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 
-const RegisterModal = ({ onClose, onSwitchToLogin }) => {
+const RegisterModal = ({ onClose, onSwitchToLogin, context = null }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -20,7 +20,7 @@ const RegisterModal = ({ onClose, onSwitchToLogin }) => {
         firstName: values.firstName,
         lastName: values.lastName,
         organizationName: values.organizationName,
-      });
+      }, context);
       setSuccess(true);
     } catch (error) {
       setError(error.message || 'Registration failed. Please try again.');

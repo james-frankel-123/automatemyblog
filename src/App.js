@@ -14,9 +14,10 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 const AppContent = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, loginContext, clearLoginContext, setNavContext } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authContext, setAuthContext] = useState(null); // Track where auth modal was opened from
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [generatedContent, setGeneratedContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -109,8 +110,9 @@ const AppContent = () => {
   ];
 
   // Unified auth gate helper function
-  const requireAuth = (action) => {
+  const requireAuth = (action, context = 'gate') => {
     if (!user) {
+      setAuthContext(context);
       setShowAuthModal(true);
       return false;
     }
@@ -210,6 +212,16 @@ const AppContent = () => {
       return () => clearInterval(messageInterval);
     }
   }, [currentStep]);
+
+  // Handle post-login success messaging for gate logins
+  useEffect(() => {
+    if (user && loginContext === 'gate') {
+      setShowAuthModal(false);
+      setAuthContext(null);
+      message.success('Welcome! Premium features are now unlocked. Continue your workflow or visit the dashboard anytime.');
+      clearLoginContext();
+    }
+  }, [user, loginContext, clearLoginContext]);
 
   const completeWebsiteAnalysis = async () => {
     try {
@@ -1767,8 +1779,8 @@ app.post('/api/autoblog-webhook', async (req, res) => {
     return codeExamples[cmsId] || '// Integration code will be generated based on your selection';
   };
 
-  // Show dashboard if user is logged in
-  if (user) {
+  // Show dashboard if user is logged in via nav buttons, but keep workflow for gate logins
+  if (user && loginContext === 'nav') {
     return <DashboardLayout />;
   }
 
@@ -1786,26 +1798,62 @@ app.post('/api/autoblog-webhook', async (req, res) => {
       />
 
       {/* Authentication Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        marginBottom: '20px',
-        gap: '12px'
-      }}>
-        <Button 
-          icon={<LoginOutlined />}
-          onClick={() => setShowAuthModal(true)}
-        >
-          Login
-        </Button>
-        <Button 
-          type="primary"
-          icon={<UserAddOutlined />}
-          onClick={() => setShowAuthModal(true)}
-        >
-          Sign Up
-        </Button>
-      </div>
+      {!user ? (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          marginBottom: '20px',
+          gap: '12px'
+        }}>
+          <Button 
+            icon={<LoginOutlined />}
+            onClick={() => {
+              setAuthContext('nav');
+              setShowAuthModal(true);
+            }}
+          >
+            Login
+          </Button>
+          <Button 
+            type="primary"
+            icon={<UserAddOutlined />}
+            onClick={() => {
+              setAuthContext('nav');
+              setShowAuthModal(true);
+            }}
+          >
+            Sign Up
+          </Button>
+        </div>
+      ) : (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          padding: '12px 16px',
+          backgroundColor: '#f6ffed',
+          border: '1px solid #b7eb8f',
+          borderRadius: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckOutlined style={{ color: '#52c41a' }} />
+            <Text style={{ color: '#52c41a', fontWeight: 500 }}>
+              Logged in as {user.email} - Premium features unlocked!
+            </Text>
+          </div>
+          <Button 
+            type="primary"
+            icon={<DatabaseOutlined />}
+            onClick={() => {
+              // Set nav context to trigger dashboard view
+              setNavContext();
+            }}
+          >
+            Go to Dashboard
+          </Button>
+        </div>
+      )}
 
       {/* Demo Mode Banner */}
       {demoMode && (
@@ -2746,7 +2794,7 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                                     
                                     <Button
                                       size="large"
-                                      icon={<LockOutlined />}
+                                      icon={user ? <EditOutlined /> : <LockOutlined />}
                                       onClick={() => {
                                         if (requireAuth()) {
                                           // TODO: Implement strategy editing functionality
@@ -2757,12 +2805,12 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                                         width: '100%',
                                         marginTop: '8px',
                                         borderColor: analysis.brandColors.primary,
-                                        color: analysis.brandColors.primary,
-                                        background: `linear-gradient(135deg, ${analysis.brandColors.primary}05, ${analysis.brandColors.primary}10)`,
+                                        color: user ? '#52c41a' : analysis.brandColors.primary,
+                                        background: user ? `linear-gradient(135deg, #52c41a05, #52c41a10)` : `linear-gradient(135deg, ${analysis.brandColors.primary}05, ${analysis.brandColors.primary}10)`,
                                         fontWeight: '500'
                                       }}
                                     >
-                                      Edit Strategy
+                                      {user ? '✓ Edit Strategy' : 'Edit Strategy'}
                                     </Button>
                                     
                                     {/* Horizontal Divider */}
@@ -2911,15 +2959,15 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                             size="large"
                             type="primary"
                             style={{
-                              backgroundColor: analysis.brandColors.accent,
-                              borderColor: analysis.brandColors.accent,
+                              backgroundColor: user ? '#52c41a' : analysis.brandColors.accent,
+                              borderColor: user ? '#52c41a' : analysis.brandColors.accent,
                               color: 'white',
                               borderRadius: '8px',
                               fontWeight: '500',
                               height: '48px',
                               padding: '0 32px',
                               fontSize: '16px',
-                              boxShadow: `0 2px 8px ${analysis.brandColors.accent}30`
+                              boxShadow: user ? `0 2px 8px #52c41a30` : `0 2px 8px ${analysis.brandColors.accent}30`
                             }}
                             onClick={() => {
                               if (requireAuth()) {
@@ -2927,9 +2975,9 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                                 message.info('More content ideas will be available after backend integration');
                               }
                             }}
-                            icon={<LockOutlined />}
+                            icon={user ? <BulbOutlined /> : <LockOutlined />}
                           >
-                            See More Ideas
+                            {user ? '✓ See More Ideas' : 'See More Ideas'}
                           </Button>
                         </div>
                       )}
@@ -3068,7 +3116,10 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                 type="primary" 
                 size="large"
                 style={{ marginTop: '8px' }}
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => {
+                  setAuthContext('gate');
+                  setShowAuthModal(true);
+                }}
               >
                 Create Free Account
               </Button>
@@ -3271,19 +3322,19 @@ app.post('/api/autoblog-webhook', async (req, res) => {
                           <Button
                             type="primary"
                             size="large"
-                            icon={!isLoading && !blogGenerating ? <LockOutlined /> : undefined}
+                            icon={!isLoading && !blogGenerating ? (user ? <ReloadOutlined /> : <LockOutlined />) : undefined}
                             loading={isLoading || blogGenerating}
                             onClick={regenerateWithFeedback}
                             disabled={postState === 'exported'}
                             style={{
-                              backgroundColor: stepResults.websiteAnalysis.brandColors.primary,
-                              borderColor: stepResults.websiteAnalysis.brandColors.primary,
+                              backgroundColor: user ? '#52c41a' : stepResults.websiteAnalysis.brandColors.primary,
+                              borderColor: user ? '#52c41a' : stepResults.websiteAnalysis.brandColors.primary,
                               minWidth: '150px',
                               fontWeight: '500',
-                              boxShadow: `0 2px 8px ${stepResults.websiteAnalysis.brandColors.primary}30`
+                              boxShadow: user ? `0 2px 8px #52c41a30` : `0 2px 8px ${stepResults.websiteAnalysis.brandColors.primary}30`
                             }}
                           >
-                            {isLoading || blogGenerating ? 'Regenerating...' : 'Regenerate'}
+                            {isLoading || blogGenerating ? 'Regenerating...' : (user ? '✓ Regenerate' : 'Regenerate')}
                           </Button>
                         </div>
                       </div>
@@ -3839,7 +3890,11 @@ app.post('/api/autoblog-webhook', async (req, res) => {
       {/* Authentication Modal */}
       <AuthModal 
         open={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        onClose={() => {
+          setShowAuthModal(false);
+          setAuthContext(null);
+        }}
+        context={authContext}
       />
     </div>
   );
