@@ -9,6 +9,7 @@ import './styles/mobile.css';
 const AppContent = () => {
   const { user, loading, loginContext, clearLoginContext, setNavContext } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [activeTab, setActiveTab] = useState('newpost');
 
   // Check if user wants dashboard view (logged in and requested navigation)
   const showDashboard = user && loginContext === 'nav';
@@ -55,6 +56,7 @@ const AppContent = () => {
             workflowContent={true}
             showDashboard={showDashboard}
             isMobile={isMobile}
+            onActiveTabChange={setActiveTab}
           />
         )}
         
@@ -65,7 +67,10 @@ const AppContent = () => {
           padding: showDashboard ? (isMobile ? '10px' : '20px') : '0',
           transition: 'padding 1s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
-          <WorkflowContainerV2 embedded={showDashboard} />
+          {/* Only show WorkflowContainer when not in dashboard mode OR when on newpost tab */}
+          {(!showDashboard || activeTab === 'newpost') && (
+            <WorkflowContainerV2 embedded={showDashboard} />
+          )}
         </div>
       </div>
     </>

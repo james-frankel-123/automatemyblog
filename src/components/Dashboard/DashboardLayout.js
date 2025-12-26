@@ -20,7 +20,7 @@ import SettingsTab from './SettingsTab';
 
 const { Header, Sider, Content } = Layout;
 
-const DashboardLayout = ({ user: propUser, loginContext, workflowContent, showDashboard, isMobile }) => {
+const DashboardLayout = ({ user: propUser, loginContext, workflowContent, showDashboard, isMobile, onActiveTabChange }) => {
   const [activeTab, setActiveTab] = useState('newpost');
   const [collapsed, setCollapsed] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -28,6 +28,14 @@ const DashboardLayout = ({ user: propUser, loginContext, workflowContent, showDa
   
   // Use prop user if provided, otherwise fall back to context user
   const user = propUser || contextUser;
+  
+  // Handle tab changes and notify parent
+  const handleTabChange = (newTab) => {
+    setActiveTab(newTab);
+    if (onActiveTabChange) {
+      onActiveTabChange(newTab);
+    }
+  };
   
   // Animation styles - elements slide in when dashboard is shown
   const animationDuration = '1s';
@@ -147,7 +155,7 @@ const DashboardLayout = ({ user: propUser, loginContext, workflowContent, showDa
               mode="inline"
               selectedKeys={[activeTab]}
               items={menuItems}
-              onClick={({ key }) => setActiveTab(key)}
+              onClick={({ key }) => handleTabChange(key)}
               style={{ border: 'none', height: '100%' }}
             />
           </div>
@@ -226,7 +234,7 @@ const DashboardLayout = ({ user: propUser, loginContext, workflowContent, showDa
               key={item.key}
               type={activeTab === item.key ? 'primary' : 'text'}
               icon={item.icon}
-              onClick={() => setActiveTab(item.key)}
+              onClick={() => handleTabChange(item.key)}
               style={{
                 border: 'none',
                 display: 'flex',
